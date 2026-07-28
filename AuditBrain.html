@@ -1,0 +1,1897 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AuditBrain</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f3f5f7; --panel:#ffffff; --panel2:#f6f7f9; --raise:#e9edf3;
+  --border:#dfe4ea; --border2:#cbd2dc;
+  --ink:#172033; --ink2:#526071; --muted:#7d8998;
+  --accent:#315bd6; --accent2:#2649ad;
+  --good:#347454; --warn:#a86615; --serious:#ad5938; --crit:#ae4141;
+  --violet:#7357a6; --aqua:#167c70;
+  --topbar:rgba(248,250,252,.92); --overlay:rgba(27,29,26,.42);
+  --topbar-surface:var(--topbar); --topbar-text:var(--ink); --topbar-subtle:var(--ink2); --topbar-hover:var(--panel2); --topbar-line:var(--border); --topbar-active:color-mix(in srgb,var(--accent) 9%,var(--panel));
+  --shadow:0 18px 55px rgba(48,52,45,.13);
+  --radius:9px;
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111310; --panel:#171a16; --panel2:#1d211c; --raise:#252a24;
+  --border:#292e28; --border2:#3a4038;
+  --ink:#f1f3ee; --ink2:#b0b6ab; --muted:#747c71;
+  --accent:#7594ed; --accent2:#a4b7ef;
+  --good:#6eae84; --warn:#d5a154; --serious:#d58262; --crit:#da7373;
+  --violet:#a99ac9; --aqua:#72aa96;
+  --topbar:rgba(17,19,16,.92); --overlay:rgba(0,0,0,.66);
+  --shadow:0 20px 60px rgba(0,0,0,.42);
+}
+:root[data-theme="sand"]{
+  color-scheme:light;--bg:#f3efe7;--panel:#fffdfa;--panel2:#f7f3ec;--raise:#ebe3d7;
+  --border:#e2d9cc;--border2:#cfc2b1;--ink:#29251f;--ink2:#625b51;--muted:#8b8174;
+  --topbar:rgba(250,247,241,.94);
+}
+:root[data-theme="slate"]{
+  color-scheme:light;--bg:#eef1f4;--panel:#fbfcfd;--panel2:#f2f5f7;--raise:#e2e7ec;
+  --border:#d6dde4;--border2:#bcc7d1;--ink:#18212b;--ink2:#526170;--muted:#7b8996;
+  --topbar:rgba(245,248,250,.94);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.5 ui-sans-serif,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent);text-decoration:none}
+::selection{background:color-mix(in srgb,var(--accent) 28%,transparent)}
+
+/* ---------- topbar ---------- */
+.topbar{
+  position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:14px;
+  padding:0 16px;height:52px;background:var(--topbar-surface);
+  backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--topbar-line);
+}
+.brand{display:flex;align-items:center;gap:8px;font-weight:680;letter-spacing:-.01em;font-size:15px}
+.brand .dot{width:9px;height:9px;border-radius:3px;background:var(--accent)}
+.nav{display:flex;gap:2px;margin-left:6px}
+.nav button{
+  border:0;background:transparent;color:var(--topbar-subtle);padding:7px 11px;border-radius:7px;
+  font-weight:560;font-size:13px;display:flex;align-items:center;gap:6px;
+}
+.nav button:hover{background:var(--topbar-hover);color:var(--ink)}
+.nav button.on{background:var(--topbar-active);color:var(--accent)}
+.nav .kbd{opacity:.5;font-size:10px}
+.spacer{flex:1}
+.tb-right{display:flex;align-items:center;gap:6px}
+.icon-btn{
+  border:1px solid var(--border);background:var(--panel);border-radius:7px;
+  padding:6px 10px;font-size:12.5px;font-weight:560;color:var(--ink2);
+}
+.icon-btn:hover{border-color:var(--border2);color:var(--ink)}
+.pill{font-size:11px;color:var(--muted);padding:0 4px;white-space:nowrap}
+
+/* ---------- layout ---------- */
+.wrap{max-width:1320px;margin:0 auto;padding:20px 16px 60px}
+.view{display:none}
+.view.on{display:block}
+h1{font-size:20px;margin:0 0 3px;letter-spacing:-.015em}
+.sub{color:var(--muted);font-size:12.5px;margin:0 0 18px}
+.card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+/* ---------- capture ---------- */
+.cap-head{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.cap-head select,.cap-head input{
+  background:var(--panel);border:1px solid var(--border);border-radius:7px;padding:7px 9px;font-size:13px;
+}
+.cap-head input{min-width:150px}
+#capText{
+  width:100%;min-height:calc(100vh - 250px);resize:vertical;padding:22px 24px;
+  background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);
+  font:15px/1.72 ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  box-shadow:var(--shadow);outline:none;
+}
+#capText:focus{border-color:var(--border2)}
+.cap-foot{display:flex;gap:10px;align-items:center;margin-top:12px}
+.btn{
+  border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:8px;
+  padding:9px 16px;font-weight:620;font-size:13.5px;
+}
+.btn:hover{background:var(--accent2);border-color:var(--accent2)}
+.btn.ghost{background:var(--panel);color:var(--ink2);border-color:var(--border)}
+.btn.ghost:hover{background:var(--panel2);color:var(--ink);border-color:var(--border2)}
+.btn.sm{padding:5px 10px;font-size:12px;font-weight:560;border-radius:6px}
+.btn:disabled{opacity:.45;cursor:default}
+.saveflag{font-size:12px;color:var(--muted)}
+
+/* ---------- lists ---------- */
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.search-input{
+  flex:1;min-width:240px;background:var(--panel);border:1px solid var(--border);
+  border-radius:8px;padding:10px 13px;font-size:14px;outline:none;box-shadow:var(--shadow);
+}
+.search-input:focus{border-color:var(--accent)}
+.chip{
+  border:1px solid var(--border);background:var(--panel);border-radius:20px;padding:4px 11px;
+  font-size:12px;color:var(--ink2);white-space:nowrap;
+}
+.chip:hover{border-color:var(--border2)}
+.chip.on{background:color-mix(in srgb,var(--accent) 12%,var(--panel));border-color:var(--accent);color:var(--accent)}
+.chip.x{padding-right:7px}
+.notelist{display:flex;flex-direction:column;gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.noteitem{background:var(--panel);padding:12px 15px;cursor:pointer;display:flex;gap:12px;align-items:flex-start}
+.noteitem:hover{background:var(--panel2)}
+.noteitem .ttl{font-weight:600;font-size:13.5px;margin-bottom:3px}
+.noteitem .meta{font-size:11.5px;color:var(--muted);display:flex;gap:9px;flex-wrap:wrap}
+.noteitem .snip{font-size:12.5px;color:var(--ink2);margin-top:5px;line-height:1.5}
+.noteitem .snip mark{background:color-mix(in srgb,var(--warn) 34%,transparent);color:inherit;border-radius:2px;padding:0 1px}
+.tbadge{font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:5px;white-space:nowrap;margin-top:1px}
+.t-walkthrough{background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent)}
+.t-meeting{background:color-mix(in srgb,var(--violet) 18%,transparent);color:var(--violet)}
+.t-testing{background:color-mix(in srgb,var(--aqua) 18%,transparent);color:var(--aqua)}
+.t-research{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+.empty{padding:44px 20px;text-align:center;color:var(--muted);font-size:13px}
+.empty b{display:block;color:var(--ink2);font-size:14px;margin-bottom:6px}
+
+/* ---------- note detail: split view ---------- */
+.split{display:grid;grid-template-columns:minmax(0,0.85fr) minmax(0,1.15fr);gap:14px;align-items:start}
+@media(max-width:1000px){.split{grid-template-columns:1fr}}
+.pane{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.pane-head{
+  display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid var(--border);
+  background:var(--panel2);font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);
+}
+.pane-head .spacer{flex:1}
+#rawPane{padding:16px 18px;white-space:pre-wrap;font:13px/1.72 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:var(--ink2);max-height:calc(100vh - 200px);overflow:auto}
+#rawPane textarea{width:100%;min-height:400px;border:0;background:transparent;font:inherit;color:var(--ink);outline:none;resize:vertical}
+.hdrgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:9px;padding:14px}
+.fld label{display:block;font-size:10.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.fld input,.fld select{width:100%;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;outline:none}
+.fld input:focus,.fld select:focus{border-color:var(--accent);background:var(--panel)}
+.sec{border-top:1px solid var(--border)}
+.sec-head{display:flex;align-items:center;gap:8px;padding:10px 14px 6px}
+.sec-head h3{margin:0;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--ink2)}
+.sec-head .cnt{font-size:11px;color:var(--muted)}
+.sec-head .spacer{flex:1}
+.sec-body{padding:0 14px 12px;min-height:14px}
+.sec-body.drop{outline:2px dashed var(--accent);outline-offset:-4px;border-radius:6px;background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.line{
+  display:flex;gap:8px;align-items:flex-start;padding:6px 9px;border-radius:6px;
+  background:var(--panel2);border:1px solid transparent;margin-bottom:4px;font-size:13.2px;line-height:1.55;cursor:grab;
+}
+.line:hover{border-color:var(--border2);background:var(--raise)}
+.line.hedge{border-left:3px solid var(--warn);background:color-mix(in srgb,var(--warn) 7%,var(--panel2))}
+.line .grip{color:var(--muted);font-size:11px;padding-top:2px;user-select:none}
+.line .txt{flex:1}
+.line .flag{font-size:10px;font-weight:700;color:var(--warn);white-space:nowrap;padding-top:2px}
+.line .acts{display:none;gap:3px}
+.line:hover .acts{display:flex}
+.mini{border:1px solid var(--border);background:var(--panel);border-radius:5px;font-size:10.5px;padding:2px 6px;color:var(--ink2)}
+.mini:hover{border-color:var(--accent);color:var(--accent)}
+.sec-empty{font-size:12px;color:var(--muted);font-style:italic;padding:3px 2px}
+
+/* control cards */
+.ctrl{background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:10px 12px;margin-bottom:8px}
+.ctrl .ct{font-weight:600;font-size:13.2px;margin-bottom:8px;line-height:1.5}
+.ctrl .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:7px}
+.ctrl .cgrid .fld input,.ctrl .cgrid .fld select{background:var(--panel);font-size:12px;padding:5px 7px}
+.ctrl .ctop{display:flex;gap:8px;align-items:flex-start}
+.conf{font-size:10px;font-weight:700;padding:2px 6px;border-radius:4px;white-space:nowrap}
+.conf.observed{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+.conf.asserted{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+
+/* gaps */
+.gap{display:flex;gap:8px;padding:7px 10px;border-radius:6px;background:color-mix(in srgb,var(--warn) 8%,var(--panel2));border-left:3px solid var(--warn);margin-bottom:5px;font-size:12.8px;line-height:1.5}
+.gap .g-x{margin-left:auto}
+/* follow-ups */
+.fu{display:flex;gap:9px;align-items:flex-start;padding:7px 10px;border-radius:6px;background:var(--panel2);margin-bottom:5px;font-size:13px}
+.fu input[type=checkbox]{margin-top:3px;accent-color:var(--accent)}
+.fu.done .fu-t{text-decoration:line-through;color:var(--muted)}
+.fu-src{font-size:11px;color:var(--muted)}
+
+/* ---------- entities ---------- */
+.egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.ecard{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:13px 15px;cursor:pointer}
+.ecard:hover{border-color:var(--accent)}
+.ecard .en{font-weight:640;font-size:14px;margin-bottom:3px}
+.ecard .em{font-size:11.5px;color:var(--muted)}
+.etype{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:2px 6px;border-radius:4px;background:var(--raise);color:var(--ink2)}
+.timeline{border-left:2px solid var(--border);margin-left:8px;padding-left:16px}
+.tl-item{position:relative;padding:9px 0;cursor:pointer}
+.tl-item:before{content:"";position:absolute;left:-21px;top:15px;width:8px;height:8px;border-radius:50%;background:var(--accent);border:2px solid var(--panel)}
+.tl-item:hover .tl-t{color:var(--accent)}
+.tl-d{font-size:11px;color:var(--muted)}
+.tl-t{font-weight:580;font-size:13.5px}
+
+/* ---------- settings / modal ---------- */
+.modal-bg{position:fixed;inset:0;background:var(--overlay);z-index:60;display:none;align-items:flex-start;justify-content:center;padding:60px 16px;overflow:auto}
+.modal-bg.on{display:flex}
+.modal{background:var(--panel);border:1px solid var(--border2);border-radius:12px;box-shadow:var(--shadow);width:100%;max-width:620px}
+.modal h2{margin:0;font-size:15px;padding:15px 18px;border-bottom:1px solid var(--border)}
+.modal .mbody{padding:16px 18px}
+.modal textarea{width:100%;min-height:180px;background:var(--panel2);border:1px solid var(--border);border-radius:7px;padding:10px;font:13px/1.6 ui-monospace,Menlo,Consolas,monospace;outline:none;resize:vertical}
+.modal .mfoot{display:flex;gap:8px;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--border)}
+.hint{font-size:12px;color:var(--muted);line-height:1.6;margin:0 0 12px}
+.setrow{display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+.setrow input{flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;outline:none}
+.setsec{margin-bottom:22px}
+.setsec h3{font-size:12.5px;margin:0 0 8px;letter-spacing:.02em}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:14px;flex-wrap:wrap}
+.tabs button{border:0;background:transparent;padding:8px 12px;font-size:12.5px;font-weight:560;color:var(--muted);border-bottom:2px solid transparent}
+.tabs button.on{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* command palette */
+#pal .modal{max-width:520px}
+#palIn{width:100%;border:0;border-bottom:1px solid var(--border);padding:14px 18px;font-size:15px;outline:none;background:transparent}
+#palList{max-height:340px;overflow:auto;padding:6px}
+.palrow{padding:9px 12px;border-radius:7px;font-size:13.5px;display:flex;gap:9px;align-items:center}
+.palrow.sel{background:var(--panel2)}
+.palrow .pk{font-size:11px;color:var(--muted);margin-left:auto}
+
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;font-size:13px;font-weight:560;z-index:90;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .18s}
+.toast.on{opacity:1}
+
+/* ---------- print ---------- */
+@media print{
+  .topbar,.toolbar,.cap-foot,.sec-head .spacer,.line .acts,.line .grip,#rawPaneWrap,.btn,.chip,.mini,.pane-head{display:none!important}
+  body{background:#fff;color:#000}
+  .wrap{max-width:none;padding:0}
+  .split{display:block}
+  .pane{border:0;box-shadow:none}
+  .line,.ctrl,.gap,.fu{background:#fff!important;border-color:#ccc!important;break-inside:avoid}
+  .sec{border-top:1px solid #ccc}
+  .sec-head h3{color:#000}
+  #printHead{display:block!important}
+}
+#printHead{display:none;margin-bottom:14px}
+#printHead h2{margin:0 0 4px;font-size:17px}
+#printHead .pm{font-size:12px;color:#444}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span>AuditBrain</div>
+  <div class="nav" id="nav"></div>
+  <div class="spacer"></div>
+  <div class="tb-right">
+    <span class="pill" id="statPill"></span>
+    <select class="icon-btn" id="themeSel" title="Theme">
+      <option value="light">Light</option><option value="dark">Dark</option>
+      <option value="sand">Sand</option><option value="slate">Slate</option>
+    </select>
+    <button class="icon-btn" id="btnSave" title="Save backup (Ctrl+S)">Save</button>
+    <button class="icon-btn" id="btnLoad" title="Load backup">Load</button>
+    <button class="icon-btn" id="btnSettings" title="Settings">&#9881;</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="view" id="v-capture"></div>
+  <div class="view" id="v-notes"></div>
+  <div class="view" id="v-note"></div>
+  <div class="view" id="v-search"></div>
+  <div class="view" id="v-entities"></div>
+  <div class="view" id="v-entity"></div>
+  <div class="view" id="v-followups"></div>
+</div>
+
+<div class="modal-bg" id="modal"><div class="modal" id="modalInner"></div></div>
+<div class="modal-bg" id="pal"><div class="modal">
+  <input id="palIn" placeholder="Type a command or note title&hellip;" autocomplete="off">
+  <div id="palList"></div>
+</div></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="fileIn" accept="application/json" style="display:none">
+
+<script>
+"use strict";
+/* ============================================================
+   AuditBrain — offline notes & knowledge base for IT audit
+   Spec: specs/04-auditbrain-product-spec.md (locked 2026-07-26)
+   No network calls. Runs from file://.
+   ============================================================ */
+
+/* ---------- 1. Type definitions ---------- */
+const TYPES = {
+  walkthrough: {
+    label:'Walkthrough', badge:'t-walkthrough', full:true, controls:true,
+    sections:[
+      {key:'purpose',      label:'Purpose',                         req:true },
+      {key:'description',  label:'Application / system description',req:false},
+      {key:'narrative',    label:'Process narrative',               req:true },
+      {key:'evidence',     label:'Systems & evidence referenced',   req:false},
+      {key:'discussion',   label:'Discussion',                      req:false}
+    ],
+    reqHead:['date','people','apps']
+  },
+  meeting: {
+    label:'Meeting / call', badge:'t-meeting', full:false, controls:false,
+    sections:[
+      {key:'decisions',   label:'Decisions made',   req:false},
+      {key:'commitments', label:'Commitments given',req:false},
+      {key:'questions',   label:'Open questions',   req:false},
+      {key:'discussion',  label:'Discussion',       req:false}
+    ],
+    reqHead:['date','people']
+  },
+  testing: {
+    label:'Testing note', badge:'t-testing', full:true, controls:true,
+    sections:[
+      {key:'objective',  label:'Objective / control tested', req:true },
+      {key:'population', label:'Population & source',        req:true },
+      {key:'selection',  label:'Selection method',           req:true },
+      {key:'procedure',  label:'Procedure performed',        req:true },
+      {key:'results',    label:'Results',                    req:true },
+      {key:'exceptions', label:'Exceptions',                 req:false},
+      {key:'conclusion', label:'Conclusion',                 req:true },
+      {key:'discussion', label:'Discussion',                 req:false}
+    ],
+    reqHead:['date']
+  },
+  research: {
+    label:'Research / methodology', badge:'t-research', full:true, controls:false,
+    sections:[
+      {key:'topic',   label:'Topic',            req:true },
+      {key:'source',  label:'Source / standard',req:false},
+      {key:'summary', label:'Summary',          req:true },
+      {key:'howto',   label:'How to apply',     req:false},
+      {key:'discussion',label:'Discussion',     req:false}
+    ],
+    reqHead:[]
+  }
+};
+const TYPE_KEYS = Object.keys(TYPES);
+const ENTITY_TYPES = {
+  app:{label:'Application'}, person:{label:'Person'}, bu:{label:'Business unit'},
+  process:{label:'Process'}, control:{label:'Control'}, engagement:{label:'Engagement'},
+  vendor:{label:'Vendor / third party'}
+};
+
+/* ---------- 2. Parser cue sets (spec §5b) ---------- */
+const CUE = {
+  hedge: /\b(supposed to|should be|should have|in theory|i believe|believe(?:d|s)? (?:to|that)|i think|apparently|typically|generally|normally|presumably|understood to|seems to|appears to|may be|might be|is meant to|meant to|ought to)\b/i,
+  /* "to do" as bare words is NOT a follow-up cue — it fires on "supposed to do
+     access reviews", which is a control statement. Only a real TODO marker counts. */
+  followup:/\b(need to|needs to|we should (?:ask|get|obtain|confirm|chase)|todo\b|to-do\b|ai:|action item|follow[- ]?up|ask (?:the|them|him|her|about|for)|chase|obtain|request(?:ed)? (?:the|a|copy)|send (?:me|over|the)|will (?:send|provide|share)|to be provided|pbc|outstanding)\b/i,
+  question:/^(?:who|what|why|how|when|where|which|whose|is|are|was|were|does|do|did|can|could|should|would|will|has|have|any)\b/i,
+  control:/\b(approv|review(?:s|ed|er)?\b|restrict|segregat|authoris|authoriz|reconcil|monitor|logged|logs are|is logged|grant(?:s|ed|ing)? access|provision|permission|sign[- ]?off|signed off|validat|verif|access is|password|encrypt|backup|recert|attest)/i,
+  restriction:/\b(only\s+[\w .&'-]{2,40}?\s+(?:can|may|is able to|are able to|has|have))\b/i,
+  narrative:/\b(they said|he said|she said|the process|then\b|after that|first(?:ly)?\b|next\b|once\b|it (?:then|asks|takes|looks|recommends)|the (?:app|system|tool|user)|gets created|is created|flows|feeds into|input)/i,
+  evidence:/\b(screenshot|extract(?:ed)?|report(?:ing)? (?:was|is) (?:provided|obtained)|ticket|jira|servicenow|evidence|workpaper|sharepoint|onedrive|\.xlsx|\.pdf|\.docx|\\\\|file path|saved (?:in|to|at))/i,
+  decision:/\b(agreed|decided|decision|we will|it was confirmed|confirmed that|concluded that|resolved to|sign(?:ed)? off on)\b/i,
+  commitment:/\b(will (?:send|provide|share|prepare|arrange|set up|revert|come back)|committed to|commits to|promised|undertook to|by (?:mon|tue|wed|thu|fri|sat|sun|next week|end of|eod|eow|\d))\b/i,
+  /* testing vocabulary (§3.6e) — Claude-proposed, unconfirmed */
+  population:/\b(population(?: of)?|total of \d|extract(?:ed)? (?:on|from)|provided by|as (?:at|of) \d|full listing|complete list)\b/i,
+  selection:/\b(sample of \d|\d+ of \d+|\bhaphazard\b|\brandom\b|judgment(?:al)?|full population|selected \d)\b/i,
+  results:/\b(no exceptions|exception(?:s)? (?:were |was |)(?:noted|identified)|\d+ exceptions?|passed|failed|could not be tested|no issues noted)\b/i,
+  conclusion:/\b(conclude(?:d)?|operating effectively|not operating (?:effectively|as designed)|design(?:ed)? (?:and|effectively)|deficien|control is effective|satisfactor)\b/i,
+  scaffold:/^(?:(?:the )?audit(?:or)?s?|we|i|iA|internal audit)\b.{0,80}?\b(?:noted|observed|performed|conducted|held|met|documented|understand[s]?|was advised)\b.*[:]\s*$|^per (?:the )?(?:discussion|walkthrough|meeting|call|conversation)[, ].{0,60}[:]\s*$|^(?:audit )?noted the following.*[:]\s*$|^the following.*[:]\s*$/i,
+  scaffoldLead:/^(?:per (?:the )?(?:discussion|walkthrough|meeting|call|conversation)[,\s]+)?(?:(?:the )?audit(?:or)?s?|we|i|internal audit)\s+(?:noted|observed|documented|understand[s]?)\s+(?:the following\s*)?(?:that\s+)?/i,
+  bullet:/^\s*(?:[*\-•‣▪·o]|\d+[.)])\s+/,
+  controlMark:/^control\s*(\d+|[a-z]|[A-Z]{2,}[-\w]*)\s*[:.\)-]\s*/i,
+  customCode:/\b(custom code|custom(?:ly)? (?:built|developed|written)|in[- ]house (?:code|developed|built)|logic board|fuzzy match|algorithm|bespoke|hard[- ]?coded|internal logic)\b/i,
+  enterprise:/\b(enterprise (?:process|control|policy|standard)|entity[- ]level|follows? (?:the )?enterprise|per enterprise|firm[- ]wide|global (?:policy|process))\b/i,
+  vague:/\b(per enterprise app|as per policy|standard process|the usual|as normal|etc\.?$)\b/i
+};
+const STOP_ENTITY = new Set(['app','apps','application','applications','system','systems','tool','tools','the','audit','it','user','users','users','data','report','reports','process','control','controls','team','company','discussion','walkthrough','meeting','note','notes']);
+/* Words that follow a "with …" cue but are never people. Without this,
+   "testing automated controls with custom logic" yields a person called "custom". */
+const FUNCTION_WORD = /^(also|and|but|then|they|she|he|we|you|it|who|that|which|this|there|here|however|further|already|again|often|never|always|just|only|even|still|otherwise|management|client|someone|everyone|nobody|custom|new|various|internal|external|each|other|several|multiple|different|standard|normal|manual|automated|relevant|respect|regard|reference|effect|no|full|some|both|any|all|our|their|his|her|its)$/i;
+const MONTHS = {jan:1,january:1,feb:2,february:2,mar:3,march:3,apr:4,april:4,may:5,jun:6,june:6,jul:7,july:7,aug:8,august:8,sep:9,sept:9,september:9,oct:10,october:10,nov:11,november:11,dec:12,december:12};
+
+/* ---------- 3. State + storage ---------- */
+const DEFAULT_SETTINGS = {
+  buLabel:'Business unit',
+  theme:'light',
+  types:{},            /* typeKey -> [{key,label,req}] overrides */
+  custom:{},           /* typeKey -> [{label,kind,options}] */
+  abbrev:[['chg mgmt','change management'],['chg','change'],['mgmt','management'],
+          ['sod','segregation of duties'],['itgc','ITGC'],['wt','walkthrough'],
+          ['w/','with'],['b/c','because'],['approx','approximately'],['info','information']]
+};
+let state = {v:1, notes:[], entities:[], settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS))};
+let ui = {view:'capture', noteId:null, entityId:null, q:'', filters:{}, draft:'', draftMeta:{}, dirty:false, palSel:0};
+
+const $  = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+const uid = ()=> Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today = ()=> new Date().toISOString().slice(0,10);
+function fmtDate(d){
+  if(!d) return '';
+  const p = d.split('-'); if(p.length!==3) return d;
+  const m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][+p[1]-1]||'';
+  return `${+p[2]} ${m} ${p[0]}`;
+}
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove('on'),1900); }
+
+/* IndexedDB with localStorage fallback (spec §3.13) */
+const DB = (()=>{
+  const NAME='auditbrain', STORE='kv', KEY='state';
+  let db=null, broken=false;
+  function open(){
+    return new Promise(res=>{
+      if(db) return res(db);
+      if(broken || !window.indexedDB) return res(null);
+      let rq; try{ rq = indexedDB.open(NAME,1); }catch(e){ broken=true; return res(null); }
+      rq.onupgradeneeded = ()=>{ try{ rq.result.createObjectStore(STORE); }catch(e){} };
+      rq.onsuccess = ()=>{ db=rq.result; res(db); };
+      rq.onerror   = ()=>{ broken=true; res(null); };
+      setTimeout(()=>{ if(!db){ broken=true; res(null);} },2500);
+    });
+  }
+  return {
+    async load(){
+      const d = await open();
+      if(d){
+        const got = await new Promise(res=>{
+          try{ const r=d.transaction(STORE,'readonly').objectStore(STORE).get(KEY);
+               r.onsuccess=()=>res(r.result); r.onerror=()=>res(null);
+          }catch(e){ res(null); }
+        });
+        if(got) return got;
+      }
+      try{ const s=localStorage.getItem('auditbrain'); return s?JSON.parse(s):null; }catch(e){ return null; }
+    },
+    async save(obj){
+      const d = await open();
+      if(d){
+        const ok = await new Promise(res=>{
+          try{ const t=d.transaction(STORE,'readwrite'); t.objectStore(STORE).put(obj,KEY);
+               t.oncomplete=()=>res(true); t.onerror=()=>res(false);
+          }catch(e){ res(false); }
+        });
+        if(ok) return true;
+      }
+      try{ localStorage.setItem('auditbrain',JSON.stringify(obj)); return true; }catch(e){ return false; }
+    }
+  };
+})();
+let saveTimer=null;
+function persist(now){
+  clearTimeout(saveTimer);
+  const go = ()=> DB.save(state).then(ok=>{ if(!ok) toast('Storage write failed — save a backup now'); });
+  if(now) go(); else saveTimer=setTimeout(go,450);
+}
+/* ============================================================
+   4. PARSER ENGINE  (spec §3.4, §3.4b, §3.4c, §3.6c, §5b)
+   Fully offline. Deterministic. Ambiguity guard: emit nothing
+   and raise a clarification gap rather than guess confidently.
+   ============================================================ */
+
+function sectionsFor(type){
+  const ov = state.settings.types[type];
+  return (ov && ov.length) ? ov : TYPES[type].sections.map(s=>({...s}));
+}
+function secKeys(type){ return sectionsFor(type).map(s=>s.key); }
+
+/* --- 4.1 text hygiene (tidying pass) --- */
+function tidy(t){
+  let s = String(t||'');
+  s = s.replace(CUE.bullet,'');
+  s = s.replace(/\s+/g,' ').trim();
+  s = s.replace(/\s+([,.;:!?])/g,'$1');
+  s = s.replace(/\bi\b/g,'I');
+  /* possessive/typo normalisation seen in real notes */
+  s = s.replace(/\bapps\s+(core|main|key|primary)\b/gi,"app's $1");
+  s = s.replace(/\bwalkthough\b/gi,'walkthrough');
+  s = s.replace(/\bntoes?\b/gi,'notes');
+  s = s.replace(/\bthier\b/gi,'their');
+  s = s.replace(/\brecieve/gi,'receive');
+  /* user abbreviation dictionary */
+  for(const [from,to] of (state.settings.abbrev||[])){
+    if(!from) continue;
+    try{ s = s.replace(new RegExp('(^|[^\\w])'+from.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?=[^\\w]|$)','gi'),(m,p)=>p+to); }catch(e){}
+  }
+  s = s.replace(/\s+/g,' ').trim();
+  if(s) s = s[0].toUpperCase()+s.slice(1);
+  if(s && !/[.!?:;)]$/.test(s)) s += '.';
+  return s;
+}
+function stripScaffold(line){
+  return line.replace(CUE.scaffoldLead,'').replace(/^that\s+/i,'').trim();
+}
+
+/* --- 4.2 sentence / clause splitting (routing granularity) --- */
+function splitUnits(line){
+  const sentences = line.split(/(?<=[.!?])\s+(?=[A-Za-z"'(])/);
+  const out=[];
+  for(const s of sentences){
+    const parts = s.split(/,\s+(?=(?:then\s+)?(?:it|they|the (?:app|system|user|report|tool))\s+(?:then\s+)?[a-z]+s?\b)|,\s+(?=then\b)|\s*;\s+/i);
+    for(const p of parts){ const t=(p||'').trim(); if(t) out.push(t); }
+  }
+  return out.length?out:[line];
+}
+
+/* --- 4.3 fact extraction --- */
+function extractDate(text){
+  let m = text.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = text.match(/\b([a-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4})\b/i);
+  if(m && MONTHS[m[1].toLowerCase()]) return iso(m[3],MONTHS[m[1].toLowerCase()],m[2]);
+  m = text.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]{3,9})\.?,?\s+(\d{4})\b/i);
+  if(m && MONTHS[m[2].toLowerCase()]) return iso(m[3],MONTHS[m[2].toLowerCase()],m[1]);
+  m = text.match(/\b(\d{1,2})\/(\d{1,2})\/(\d{4})\b/);            /* dd/mm/yyyy */
+  if(m) return iso(m[3],m[2],m[1]);
+  return '';
+  function iso(y,mo,d){ return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+}
+function known(type){
+  return state.entities.filter(e=>e.type===type);
+}
+function matchKnown(text,type){
+  const found=[], low=' '+text.toLowerCase()+' ';
+  for(const e of known(type)){
+    const names=[e.name,...(e.aliases||[])];
+    for(const n of names){
+      if(!n||n.length<2) continue;
+      const rx = new RegExp('(^|[^\\w])'+n.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?=[^\\w]|$)');
+      if(rx.test(low)){ found.push(e.name); break; }
+    }
+  }
+  return found;
+}
+function extractApps(text){
+  const out = new Set(matchKnown(text,'app'));
+  let m; const cue=/\bapp(?:lication)?\s*[-–—:]\s*([A-Za-z][\w .&'-]{1,28}?)(?=[.,;]|$|\s{2})/gi;
+  while((m=cue.exec(text))) addApp(m[1]);
+  const cue2=/\b(?:system|tool|platform)\s*[-–—:]\s*([A-Za-z][\w .&'-]{1,28}?)(?=[.,;]|$)/gi;
+  while((m=cue2.exec(text))) addApp(m[1]);
+  /* CamelCase with an internal hump — high confidence, e.g. BigApp, SharePoint.
+     Bare ALL-CAPS (IT, GUI, SAP) is NOT auto-created: ambiguity guard. */
+  const camel=/\b([A-Z][a-z]+[A-Z][A-Za-z]+)\b/g;
+  while((m=camel.exec(text))) addApp(m[1]);
+  return Array.from(out);
+  function addApp(v){
+    const n=(v||'').trim().replace(/[.,;]$/,'');
+    if(!n||n.length<2) return;
+    if(STOP_ENTITY.has(n.toLowerCase())) return;
+    out.add(n);
+  }
+}
+/* Names in real notes are lowercase and first-name-only ("with john"), so
+   capitalization can never be the detector. The cue is matched case-insensitively,
+   but the captured tail is then read CASE-SENSITIVELY — an /i regex would make
+   [A-Z] match lowercase and swallow the next word ("john on"). */
+function extractPeople(text){
+  const out=new Set(matchKnown(text,'person')); let m;
+  const rel=/\b(?:walkthrough with|meeting with|call with|met with|spoke (?:to|with)|discussed with|attended by|attendees?\s*[:-]|present\s*[:-]|(?:extracted|provided|prepared|obtained|received) by|w\/|with)\s+([A-Za-z][\w'’+&, -]{1,60})/gi;
+  while((m=rel.exec(text))) addList(m[1]);
+  const said=/\b([A-Za-z][\w'’-]{2,20})\s+(?:said|stated|confirmed|advised|mentioned|explained|indicated|walked us)\b/gi;
+  while((m=said.exec(text))) { if(!FUNCTION_WORD.test(m[1])) add(m[1]); }
+  return Array.from(out);
+  function addList(tail){
+    tail.split(/\s*(?:,|\+|&|\band\b)\s*/).slice(0,4).forEach(part=>{
+      const words=(part||'').trim().split(/\s+/);
+      if(!words.length) return;
+      let n=words[0].replace(/[.,;]$/,'');
+      /* a surname is only taken when it is genuinely capitalised */
+      if(words[1] && /^[A-Z][\w'’-]{1,20}$/.test(words[1].replace(/[.,;]$/,''))) n += ' '+words[1].replace(/[.,;]$/,'');
+      add(n);
+    });
+  }
+  function add(v){
+    let n=(v||'').trim().replace(/[.,;]$/,'');
+    if(!n || n.length<2) return;
+    if(!/^[A-Za-z]/.test(n) || /\d/.test(n)) return;   /* dates and refs are not people */
+    const low=n.toLowerCase();
+    if(STOP_ENTITY.has(low)) return;
+    if(FUNCTION_WORD.test(low.split(' ')[0])) return;
+    if(MONTHS[low.split(' ')[0]]) return;
+    if(low.split(/\s+/).length>3) return;
+    if(/^(the|a|an|his|her|their|our|us|them|regard|respect|reference|no|new|each|all|any|which|that|this|his)\b/.test(low)) return;
+    if(extractAppsShallow(text).some(a=>a.toLowerCase()===low)) return;
+    out.add(n);
+  }
+}
+function extractAppsShallow(text){
+  const out=[]; let m; const cue=/\bapp(?:lication)?\s*[-–—:]\s*([A-Za-z][\w .&'-]{1,28}?)(?=[.,;]|$)/gi;
+  while((m=cue.exec(text))) out.push(m[1].trim());
+  return out;
+}
+function extractOne(text,type,rxList){
+  const k = matchKnown(text,type); if(k.length) return k[0];
+  for(const rx of rxList){ const m=text.match(rx); if(m){ const v=(m[1]||'').trim().replace(/[.,;]$/,''); if(v && !STOP_ENTITY.has(v.toLowerCase())) return v; } }
+  return '';
+}
+const RX_PROCESS = [/\b(?:process|cycle)\s*[-–—:]\s*([\w .&'-]{2,40}?)(?=[.,;]|$)/i,
+                    /\bwalkthrough of (?:the )?([\w .&'-]{2,40}?)(?=\s+process|[.,;]|$)/i,
+                    /\bthe ([\w .&'-]{2,30}?) process\b/i];
+const RX_BU      = [/\b(?:business unit|department|function|bu)\s*[-–—:]\s*([\w .&'-]{2,40}?)(?=[.,;]|$)/i];
+const RX_ENG     = [/\b(?:engagement|audit)\s*[-–—:]\s*([\w .&'-]{2,40}?)(?=[.,;]|$)/i];
+
+/* --- 4.4 routing --- */
+function routeUnit(u, type, ctx){
+  const t = u.trim(); const low=t.toLowerCase();
+  const keys = secKeys(type);
+  const has = k => keys.includes(k);
+  const flags = [];
+  if(CUE.hedge.test(t)) flags.push('hedge');
+
+  /* explicit shorthand markers win outright (spec §3.3) */
+  if(/^!/.test(t))  return {bucket:'followup', text:t.replace(/^!\s*/,''), flags};
+  if(/^\?/.test(t)) return {bucket:has('questions')?'sec:questions':'gap', text:t.replace(/^\?\s*/,''), flags};
+  if(/^>/.test(t))  return {bucket:'control', text:t.replace(/^>\s*/,''), flags};
+
+  if(CUE.controlMark.test(t)) return {bucket:'control', text:t, flags, marked:true};
+
+  /* an explicit "Population: …" / "How to apply: …" label beats every heuristic */
+  if(TYPES[type].full){
+    const lab0 = t.match(/^([A-Za-z][A-Za-z /&-]{2,34}?)\s*[:–-]\s+(.+)$/);
+    if(lab0){
+      const want = lab0[1].toLowerCase().trim();
+      const hit = sectionsFor(type).find(s => s.label.toLowerCase()===want || s.key===want.replace(/\s+/g,'_')
+                   || s.label.toLowerCase().split(' / ').includes(want));
+      if(hit) return {bucket:'sec:'+hit.key, text:lab0[2], flags};
+    }
+  }
+  /* Research notes are methodology, not action items — "obtain the export" there is
+     a technique, not something owed. Only an explicit ! marks a follow-up. */
+  if(type!=='research' && CUE.followup.test(t)) return {bucket:'followup', text:t, flags};
+
+  /* A question ends with "?", or is a short bare interrogative. Leading "where"/"how"
+     in a long clause is conditional prose ("Where an app uses custom code, …"). */
+  const words = t.split(/\s+/).length;
+  if(/\?\s*$/.test(t) || (CUE.question.test(t) && words<=12 && !/,/.test(t)))
+    return {bucket:has('questions')?'sec:questions':'gap', text:t, flags};
+
+  /* meeting notes: light touch — only confident buckets, rest to Discussion (§3.6c) */
+  if(!TYPES[type].full){
+    if(CUE.decision.test(t)   && has('decisions'))   return {bucket:'sec:decisions',   text:t, flags};
+    if(CUE.commitment.test(t) && has('commitments')) return {bucket:'sec:commitments', text:t, flags};
+    return {bucket:'sec:discussion', text:t, flags};
+  }
+
+  /* the opening line of a research note is its topic */
+  if(type==='research' && has('topic') && !ctx.gotTopic){ ctx.gotTopic=true; return {bucket:'sec:topic', text:t, flags}; }
+
+  /* Testing notes describe the testing of ONE control, so generic control language
+     ("approval", "granted", "reviewed") is subject matter, not a control inventory.
+     Only explicitly marked controls become records there. */
+  if(type==='testing'){
+    if(CUE.conclusion.test(t) && has('conclusion')) return {bucket:'sec:conclusion', text:t, flags};
+    if(CUE.results.test(t)    && has('results'))    return {bucket:'sec:results',    text:t, flags};
+    if(CUE.selection.test(t)  && has('selection'))  return {bucket:'sec:selection',  text:t, flags};
+    if(CUE.population.test(t) && has('population')) return {bucket:'sec:population', text:t, flags};
+    if(/\b(objective|to (?:verify|confirm|determine|assess)|was tested|we tested)\b/i.test(t) && has('objective'))
+      return {bucket:'sec:objective', text:t, flags};
+    if(/\b(inspect|re[- ]?perform|observ|inquir|examin|traced|agreed the|agreed to|vouch|walked through)\b/i.test(t) && has('procedure'))
+      return {bucket:'sec:procedure', text:t, flags};
+  } else {
+    /* reliance on enterprise / entity-level controls is itself a control point (§5b) */
+    if(CUE.enterprise.test(t) && TYPES[type].controls) return {bucket:'control', text:t, flags};
+    if((CUE.restriction.test(t) || CUE.control.test(t)) && TYPES[type].controls)
+      return {bucket:'control', text:t, flags};
+  }
+  if(CUE.evidence.test(t) && has('evidence')) return {bucket:'sec:evidence', text:t, flags};
+  if(has('description') && /\b(?:app|application|system|it)\b.{0,20}\b(?:is responsible for|is used (?:to|for)|handles|supports|provides|takes in)\b/i.test(t) && !ctx.gotDesc){
+    ctx.gotDesc = true;
+    return {bucket:'sec:description', text:t, flags};
+  }
+  if(has('purpose') && !ctx.gotPurpose && /\b(?:to discuss|purpose|in order to|to (?:understand|walk through|document))\b/i.test(t)){
+    ctx.gotPurpose = true;
+    return {bucket:'sec:purpose', text:t, flags};
+  }
+  if(CUE.narrative.test(t) && has('narrative')) return {bucket:'sec:narrative', text:t, flags};
+  if(has('summary')) return {bucket:'sec:summary', text:t, flags};
+  return {bucket:has('discussion')?'sec:discussion':'sec:'+keys[keys.length-1], text:t, flags};
+}
+
+/* --- 4.5 control sub-records (spec §3.6b) --- */
+const FREQ_RX = /\b(daily|weekly|monthly|quarterly|semi[- ]annual(?:ly)?|annual(?:ly)?|yearly|per (?:change|request|release|incident)|real[- ]time|continuous(?:ly)?|ad[- ]hoc|each time)\b/i;
+function buildControl(text, apps){
+  const c = {id:uid(), ref:'', desc:'', system:'', performer:'', frequency:'', nature:'', evidence:'', conf:'observed'};
+  let t = text.trim();
+  const mk = t.match(CUE.controlMark);
+  if(mk){ c.ref = 'Control '+mk[1]; t = t.replace(CUE.controlMark,''); }
+  c.desc = tidy(t);
+  if(CUE.hedge.test(text)) c.conf='asserted';
+  const f = text.match(FREQ_RX); if(f) c.frequency = f[1][0].toUpperCase()+f[1].slice(1).toLowerCase();
+  let p = text.match(CUE.restriction);
+  if(p){ const mm = p[1].match(/^only\s+(.+?)\s+(?:can|may|is able to|are able to|has|have)$/i); if(mm) c.performer = clean(mm[1]); }
+  if(!c.performer){
+    const by = text.match(/\b(?:is |are |)(?:performed|reviewed|approved|granted|provisioned|carried out|completed|done)\s+by\s+(?:the\s+)?([\w .&'-]{2,32}?)(?=[.,;]|$|\s+(?:on|in|at|when|for))/i);
+    if(by) c.performer = clean(by[1]);
+  }
+  if(!c.performer){
+    const act = text.match(/\b(?:the\s+)?([A-Za-z][\w .&'-]{1,28}?)\s+(?:team\s+)?(?:approves|reviews|grants|provisions|authorises|authorizes|monitors|reconciles)\b/i);
+    /* ambiguity guard: an actor is a short noun phrase, not a clause. If the
+       capture drags in verbs or hedges it is not a performer — leave it blank
+       so the gap prompt asks, rather than recording a confident-wrong answer. */
+    if(act && plausibleActor(act[1]))
+      c.performer = clean(act[1]+(/team/i.test(text.slice(act.index,act.index+act[0].length+6))?' team':''));
+  }
+  const sysHit = (apps||[]).find(a=> new RegExp('\\b'+a.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','i').test(text));
+  if(sysHit) c.system = sysHit;
+  if(CUE.customCode.test(text) || /\b(system (?:enforces|prevents|generates|restricts)|automatic(?:ally)?|configured|hard[- ]?coded|workflow)\b/i.test(text)) c.nature='Automated';
+  else if(/\b(report|listing|extract|generated)\b/i.test(text) && CUE.control.test(text)) c.nature='Manual (IT-dependent)';
+  else if(CUE.control.test(text)) c.nature='Manual';
+  return c;
+  function clean(v){
+    let s=(v||'').trim().replace(/^(the|a|an)\s+/i,'').replace(/[.,;]$/,'');
+    if(/^only\s/i.test(s)) s=s.replace(/^only\s+/i,'');
+    return s;
+  }
+  function plausibleActor(v){
+    const s=String(v||'').trim();
+    if(!s || s.split(/\s+/).length>3) return false;
+    if(/\b(is|are|was|were|be|been|supposed|should|must|do|does|can|may|to|that|which|and|or)\b/i.test(s)) return false;
+    return true;
+  }
+}
+
+/* --- 4.6 the main parse --- */
+function parseNote(raw, type, seed){
+  seed = seed||{};
+  const cfg = TYPES[type], keys = secKeys(type);
+  const res = {
+    type, raw,
+    date: seed.date||'', people:[], apps:[], processes:[], bu:seed.bu||'', engagement:seed.engagement||'',
+    sections:{}, controls:[], gaps:[], followups:[], notices:[]
+  };
+  keys.forEach(k=> res.sections[k]=[]);
+
+  const rawLines = raw.split(/\r?\n/);
+  const ctx = {gotDesc:false, gotPurpose:false};
+
+  /* header facts from the whole document */
+  res.date = res.date || extractDate(raw);
+  res.people = extractPeople(raw);
+  res.apps = extractApps(raw);
+  const proc = extractOne(raw,'process',RX_PROCESS); if(proc) res.processes=[proc];
+  res.bu = res.bu || extractOne(raw,'bu',RX_BU);
+  res.engagement = res.engagement || extractOne(raw,'engagement',RX_ENG);
+
+  /* line pass */
+  let forced = null;      /* section forced by a scaffolding header (spec §3.4b) */
+  for(let li=0; li<rawLines.length; li++){
+    let line = rawLines[li];
+    if(!line.trim()) continue;
+    const bare = line.replace(CUE.bullet,'').trim();
+
+    /* Scaffolding is detected per SENTENCE, not per line — the opening line of a
+       real note carries the purpose AND a trailing "audit noted the following:".
+       Dropping the whole line would throw the purpose away. */
+    const units = splitUnits(bare);
+    for(const u0 of units){
+      if(!u0.trim()) continue;
+      if(CUE.scaffold.test(u0.trim())){
+        forced = /\bcontrol/i.test(u0) ? 'control'
+               : /\bfollow[- ]?up|action/i.test(u0) ? 'followup'
+               : /\bquestion/i.test(u0) ? 'question' : null;
+        continue;
+      }
+      const u = stripScaffold(u0);
+      if(!u.trim()) continue;
+      let r = routeUnit(u, type, ctx);
+      if(forced==='control' && TYPES[type].controls && r.bucket.startsWith('sec:') && !r.marked) r = {...r, bucket:'control'};
+      if(forced==='followup' && r.bucket.startsWith('sec:')) r = {...r, bucket:'followup'};
+      const text = tidy(r.text);
+      if(!text) continue;
+      if(r.bucket==='control'){
+        const c = buildControl(r.text, res.apps);
+        c.srcHedge = r.flags.includes('hedge');
+        if(c.srcHedge) c.conf='asserted';
+        res.controls.push(c);
+      } else if(r.bucket==='followup'){
+        res.followups.push({id:uid(), text, done:false});
+      } else if(r.bucket==='gap'){
+        res.gaps.push({id:uid(), text, auto:false});
+      } else {
+        const k = r.bucket.slice(4);
+        (res.sections[k] = res.sections[k]||[]).push({id:uid(), text, flags:r.flags, raw:r.text});
+      }
+      if(r.flags.includes('hedge') && r.bucket!=='gap'){
+        res.gaps.push({id:uid(), auto:true, text:'Unverified — confirm and obtain evidence: “'+trunc(r.text,90)+'”'});
+      }
+    }
+  }
+  /* number unmarked controls without colliding with explicit "control 1:" refs,
+     and do it BEFORE gaps so gap text can name the control */
+  const used=new Set(res.controls.map(c=>parseInt((c.ref||'').replace(/\D+/g,''),10)).filter(n=>!isNaN(n)));
+  let next=1;
+  res.controls.forEach(c=>{ if(!c.ref){ while(used.has(next)) next++; used.add(next); c.ref='Control '+next; } });
+  res.gaps = res.gaps.concat(autoGaps(res, raw, type));
+  return res;
+}
+function trunc(s,n){
+  s=String(s||'').trim(); if(s.length<=n) return s;
+  const cut=s.slice(0,n-1), sp=cut.lastIndexOf(' ');
+  return (sp>n*0.6? cut.slice(0,sp) : cut).replace(/[.,;:\s]+$/,'')+'…';
+}
+
+/* --- 4.7 gap prompts --- */
+function autoGaps(res, raw, type){
+  const g=[], add=t=>g.push({id:uid(),auto:true,text:t});
+  const cfg=TYPES[type], L=state.settings.buLabel;
+  (cfg.reqHead||[]).forEach(f=>{
+    if(f==='date'   && !res.date)          add('No date identified for this note.');
+    if(f==='people' && !res.people.length) add('No attendees identified — who was present, and in what role?');
+    if(f==='apps'   && !res.apps.length)   add('No application or system identified.');
+  });
+  /* research notes are methodology, not client-specific — they need no owner */
+  if(!res.bu && type!=='research') add('No '+L.toLowerCase()+' identified for this note.');
+  sectionsFor(type).forEach(s=>{
+    if(s.req && !(res.sections[s.key]||[]).length) add('“'+s.label+'” is empty — required for a '+cfg.label.toLowerCase()+'.');
+  });
+  /* testing notes describe one control being tested, not an inventory — don't nag */
+  if(type==='walkthrough' && !res.controls.length) add('No control points identified in this note.');
+  res.controls.forEach(c=>{
+    const miss=[];
+    if(!c.performer) miss.push('performer');
+    if(!c.frequency) miss.push('frequency');
+    if(!c.nature)    miss.push('nature (manual / IT-dependent / automated)');
+    if(!c.system)    miss.push('system');
+    if(!c.evidence)  miss.push('evidence');
+    if(miss.length) add((c.ref||'Control')+' is missing: '+miss.join(', ')+'.');
+  });
+  if(type!=='research' && CUE.customCode.test(raw) && !res.controls.some(c=>/chang|version|deploy|releas|logic/i.test(c.desc)))
+    add('Custom code / internal logic is described but no control was identified over changes to it.');
+  if(CUE.enterprise.test(raw))
+    add('Reliance on enterprise/entity-level processes noted — which processes, and are they in scope here or tested elsewhere?');
+  const vague = raw.match(CUE.vague);
+  if(vague) add('Ambiguous wording “'+vague[0].trim()+'” — clarify what this refers to (not interpreted).');
+  const cn = res.controls.map(c=>parseInt((c.ref||'').replace(/\D+/g,''),10)).filter(n=>!isNaN(n));
+  if(res.controls.length===1 && cn.length===1 && cn[0]===1)
+    add('Only “Control 1” was captured — the list may be incomplete.');
+  if(!res.followups.length && (type==='walkthrough'||type==='meeting'))
+    add('No follow-ups or action items detected — was anything committed to?');
+  return g;
+  function listify(a){ return a.length<2? a[0] : a.slice(0,-1).join(', ')+' or '+a[a.length-1]; }
+}
+
+/* --- 4.8 auto-title (spec §3.6d) --- */
+function autoTitle(res){
+  const d = res.date? fmtDate(res.date) : '';
+  const who = res.people[0]||'';
+  const app = res.apps[0]||res.processes[0]||'';
+  const bu  = res.bu||'';
+  let head;
+  if(res.type==='walkthrough') head = (app? app+' walkthrough' : 'Walkthrough');
+  else if(res.type==='meeting') head = 'Meeting'+(app||bu? ' — '+(app||bu):'');
+  else if(res.type==='testing') head = (app? app+' testing' : 'Testing note');
+  else head = trunc(((res.sections.topic||[])[0]||{}).text || ((res.sections.summary||[])[0]||{}).text || 'Research note', 46);
+  const bits=[head];
+  if(res.type!=='research'){
+    if(who && res.type!=='testing') bits.push(who);
+    if(d) bits.push(d);
+  }
+  return bits.filter(Boolean).join(' — ');
+}
+/* ============================================================
+   5. Entities, notes, search
+   ============================================================ */
+function findEntity(name,type){
+  const l=String(name||'').toLowerCase().trim();
+  return state.entities.find(e=> e.type===type && (e.name.toLowerCase()===l || (e.aliases||[]).some(a=>a.toLowerCase()===l)));
+}
+function ensureEntity(name,type){
+  const n=String(name||'').trim(); if(!n) return null;
+  let e=findEntity(n,type);
+  if(!e){ e={id:uid(),type,name:n,aliases:[],desc:'',created:Date.now()}; state.entities.push(e); }
+  return e;
+}
+function harvestEntities(note){
+  (note.apps||[]).forEach(n=>ensureEntity(n,'app'));
+  (note.people||[]).forEach(n=>ensureEntity(n,'person'));
+  (note.processes||[]).forEach(n=>ensureEntity(n,'process'));
+  if(note.bu) ensureEntity(note.bu,'bu');
+  if(note.engagement) ensureEntity(note.engagement,'engagement');
+  (note.controls||[]).forEach(c=>{ if(c.ref && /^[A-Z]{2,}/.test(c.ref)) ensureEntity(c.ref,'control'); });
+}
+function entityNotes(e){
+  if(!e) return [];
+  const names=[e.name,...(e.aliases||[])].map(s=>s.toLowerCase());
+  const key = {app:'apps',person:'people',process:'processes',bu:'bu',engagement:'engagement',control:null,vendor:'vendors'}[e.type];
+  return state.notes.filter(n=>{
+    if(key==='bu' || key==='engagement') return names.includes(String(n[key]||'').toLowerCase());
+    if(key) return (n[key]||[]).some(v=>names.includes(String(v).toLowerCase()));
+    return (n.controls||[]).some(c=>names.includes(String(c.ref||'').toLowerCase()));
+  }).sort(byDateDesc);
+}
+function relatedEntities(e){
+  const ns=entityNotes(e), map={};
+  ns.forEach(n=>{
+    [['apps','app'],['people','person'],['processes','process']].forEach(([k,t])=>{
+      (n[k]||[]).forEach(v=>{ if(!(t===e.type && v.toLowerCase()===e.name.toLowerCase())) bump(v,t); });
+    });
+    if(n.bu) bump(n.bu,'bu');
+    if(n.engagement) bump(n.engagement,'engagement');
+  });
+  return Object.values(map).sort((a,b)=>b.n-a.n).slice(0,14);
+  function bump(name,type){ const k=type+'|'+name.toLowerCase(); (map[k]=map[k]||{name,type,n:0}).n++; }
+}
+function byDateDesc(a,b){ return (b.date||'0000').localeCompare(a.date||'0000') || (b.modified||0)-(a.modified||0); }
+
+/* --- note text for indexing / snippets --- */
+function noteText(n){
+  const parts=[n.title||'', n.raw||''];
+  Object.values(n.sections||{}).forEach(arr=>(arr||[]).forEach(l=>parts.push(l.text)));
+  (n.controls||[]).forEach(c=>parts.push([c.ref,c.desc,c.performer,c.system,c.frequency,c.nature,c.evidence].filter(Boolean).join(' ')));
+  (n.gaps||[]).forEach(g=>parts.push(g.text));
+  (n.followups||[]).forEach(f=>parts.push(f.text));
+  parts.push([...(n.apps||[]),...(n.people||[]),...(n.processes||[]),n.bu,n.engagement].filter(Boolean).join(' '));
+  Object.entries(n.custom||{}).forEach(([k,v])=>parts.push(k+' '+v));
+  return parts.join('\n');
+}
+const tokenize = s => String(s||'').toLowerCase().match(/[a-z0-9][a-z0-9'.-]*/g)||[];
+
+/* inverted index (rebuilt incrementally on save) */
+let INDEX = new Map();
+function indexNote(n){
+  const seen=new Map();
+  tokenize(noteText(n)).forEach(t=>seen.set(t,(seen.get(t)||0)+1));
+  for(const [t,c] of seen){
+    let m=INDEX.get(t); if(!m){ m=new Map(); INDEX.set(t,m); }
+    m.set(n.id,c);
+  }
+}
+function deindexNote(id){ for(const m of INDEX.values()) m.delete(id); }
+function rebuildIndex(){ INDEX=new Map(); state.notes.forEach(indexNote); }
+function reindex(n){ deindexNote(n.id); indexNote(n); }
+
+function searchNotes(q, filters){
+  filters = filters||{};
+  let pool = state.notes;
+  if(filters.type) pool = pool.filter(n=>n.type===filters.type);
+  if(filters.bu) pool = pool.filter(n=>n.bu===filters.bu);
+  if(filters.app) pool = pool.filter(n=>(n.apps||[]).includes(filters.app));
+  if(filters.person) pool = pool.filter(n=>(n.people||[]).includes(filters.person));
+  if(filters.from) pool = pool.filter(n=>(n.date||'')>=filters.from);
+  if(filters.to) pool = pool.filter(n=>(n.date||'')<=filters.to);
+  const terms = tokenize(q);
+  if(!terms.length) return pool.slice().sort(byDateDesc).map(n=>({note:n,score:0,snippet:snippetOf(n,[])}));
+  const ok=new Set(pool.map(n=>n.id));
+  const scores=new Map();
+  const N=Math.max(1,state.notes.length);
+  terms.forEach(t=>{
+    const exact=INDEX.get(t);
+    const buckets=[];
+    if(exact) buckets.push([exact,1]);
+    else { for(const [k,m] of INDEX){ if(k.startsWith(t)) buckets.push([m,.55]); } }   /* prefix fallback */
+    const df = buckets.reduce((s,[m])=>s+m.size,0)||1;
+    const idf = Math.log(1+N/df);
+    buckets.forEach(([m,w])=>{ for(const [id,c] of m){ if(ok.has(id)) scores.set(id,(scores.get(id)||0)+w*idf*(1+Math.log(c))); } });
+  });
+  const out=[];
+  for(const [id,sc] of scores){
+    const n=state.notes.find(x=>x.id===id); if(!n) continue;
+    const rec = recencyBoost(n);
+    out.push({note:n, score:sc*rec, snippet:snippetOf(n,terms)});
+  }
+  return out.sort((a,b)=>b.score-a.score);
+}
+function recencyBoost(n){
+  const d = n.date||''; if(!d) return 1;
+  const days = (Date.now()-new Date(d+'T00:00:00').getTime())/86400000;
+  return 1 + Math.max(0, .35 - days/2600);
+}
+function snippetOf(n,terms){
+  const text = (n.raw||'').replace(/\s+/g,' ').trim() || noteText(n).replace(/\s+/g,' ').trim();
+  if(!terms.length) return esc(trunc(text,150));
+  const low=text.toLowerCase();
+  let at=-1;
+  for(const t of terms){ const i=low.indexOf(t); if(i>=0 && (at<0||i<at)) at=i; }
+  if(at<0) return esc(trunc(text,150));
+  const start=Math.max(0,at-60), seg=(start?'…':'')+text.slice(start,start+190)+(start+190<text.length?'…':'');
+  let out=esc(seg);
+  terms.forEach(t=>{
+    try{ out = out.replace(new RegExp('('+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'),'<mark>$1</mark>'); }catch(e){}
+  });
+  return out;
+}
+
+/* --- note CRUD --- */
+function newNoteFromParse(res, extra){
+  const n = {
+    id:uid(), type:res.type, raw:res.raw, title:'', titleAuto:true,
+    date:res.date, people:res.people, apps:res.apps, processes:res.processes,
+    bu:res.bu, engagement:res.engagement,
+    sections:res.sections, controls:res.controls, gaps:res.gaps, followups:res.followups,
+    custom:{}, structured:true, created:Date.now(), modified:Date.now(), ...(extra||{})
+  };
+  n.title = autoTitle(res);
+  return n;
+}
+function getNote(id){ return state.notes.find(n=>n.id===id); }
+function touch(n){ n.modified=Date.now(); harvestEntities(n); reindex(n); persist(); }
+function deleteNote(id){
+  const i=state.notes.findIndex(n=>n.id===id); if(i<0) return;
+  state.notes.splice(i,1); deindexNote(id); persist(true);
+}
+function openFollowups(){
+  const out=[];
+  state.notes.forEach(n=>(n.followups||[]).forEach(f=>out.push({f,n})));
+  return out.sort((a,b)=> (a.f.done?1:0)-(b.f.done?1:0) || byDateDesc(a.n,b.n));
+}
+/* ============================================================
+   6. Views
+   ============================================================ */
+const NAV = [
+  {k:'capture',   label:'Capture',    key:'1'},
+  {k:'notes',     label:'Notes',      key:'2'},
+  {k:'search',    label:'Search',     key:'3'},
+  {k:'entities',  label:'Entities',   key:'4'},
+  {k:'followups', label:'Follow-ups', key:'5'}
+];
+function go(view,opts){
+  ui.view=view; Object.assign(ui,opts||{});
+  $$('.view').forEach(v=>v.classList.remove('on'));
+  const el=$('#v-'+view); if(el) el.classList.add('on');
+  $$('#nav button').forEach(b=>b.classList.toggle('on', b.dataset.k===view ||
+    (view==='note'&&b.dataset.k==='notes') || (view==='entity'&&b.dataset.k==='entities')));
+  render();
+  window.scrollTo(0,0);
+}
+function renderNav(){
+  $('#nav').innerHTML = NAV.map(n=>`<button data-k="${n.k}">${n.label}<span class="kbd">${n.key}</span></button>`).join('');
+  $$('#nav button').forEach(b=>b.onclick=()=>go(b.dataset.k));
+}
+function render(){
+  const v=ui.view;
+  if(v==='capture')  renderCapture();
+  if(v==='notes')    renderNotes();
+  if(v==='note')     renderNote();
+  if(v==='search')   renderSearch();
+  if(v==='entities') renderEntities();
+  if(v==='entity')   renderEntity();
+  if(v==='followups')renderFollowups();
+  const open = openFollowups().filter(x=>!x.f.done).length;
+  $('#statPill').textContent = `${state.notes.length} note${state.notes.length===1?'':'s'}` + (open?` · ${open} open`:'');
+}
+
+/* ---------- 6.1 Capture ---------- */
+function renderCapture(){
+  const el=$('#v-capture');
+  if(el.dataset.built!=='1'){
+    el.innerHTML = `
+      <h1>Capture</h1>
+      <p class="sub">Type or paste rough notes. Nothing here is required — structure it when the meeting's over.</p>
+      <div class="cap-head">
+        <select id="capType">${TYPE_KEYS.map(k=>`<option value="${k}">${TYPES[k].label}</option>`).join('')}</select>
+        <input type="date" id="capDate" title="Date (optional — detected from the text if left blank)">
+        <input id="capBu" placeholder="${esc(state.settings.buLabel)} (optional)" list="buList">
+        <datalist id="buList"></datalist>
+        <span class="saveflag" id="capFlag"></span>
+      </div>
+      <textarea id="capText" placeholder="Paste or type here…
+
+Optional shorthand — everything still works without it:
+  @name     person        #app     application
+  ?…        open question !…       follow-up
+  >…        control point"></textarea>
+      <div class="cap-foot">
+        <button class="btn" id="capGo">Structure this</button>
+        <button class="btn ghost" id="capClear">Clear</button>
+        <span class="saveflag">Draft autosaves as you type.</span>
+      </div>`;
+    el.dataset.built='1';
+    $('#capText').addEventListener('input',()=>{
+      ui.draft=$('#capText').value; ui.draftMeta=capMeta();
+      $('#capFlag').textContent = ui.draft.trim()? 'Draft saved' : '';
+      persist();
+      $('#capGo').disabled = !ui.draft.trim();
+    });
+    ['capType','capDate','capBu'].forEach(id=>$('#'+id).addEventListener('change',()=>{ ui.draftMeta=capMeta(); persist(); }));
+    $('#capGo').onclick = doStructure;
+    $('#capClear').onclick = ()=>{
+      if(ui.draft.trim() && !confirm('Discard this draft?')) return;
+      ui.draft=''; $('#capText').value=''; $('#capFlag').textContent=''; $('#capGo').disabled=true; persist();
+    };
+  }
+  $('#capText').value = ui.draft||'';
+  $('#capGo').disabled = !(ui.draft||'').trim();
+  const m=ui.draftMeta||{};
+  if(m.type) $('#capType').value=m.type;
+  $('#capDate').value = m.date||'';
+  $('#capBu').value = m.bu||'';
+  $('#capBu').placeholder = state.settings.buLabel+' (optional)';
+  $('#buList').innerHTML = known('bu').map(e=>`<option value="${esc(e.name)}">`).join('');
+  setTimeout(()=>{ if(ui.view==='capture') $('#capText').focus(); },30);
+}
+function capMeta(){ return {type:$('#capType').value, date:$('#capDate').value, bu:$('#capBu').value.trim()}; }
+function doStructure(){
+  const raw=(ui.draft||'').trim(); if(!raw) return;
+  const m=capMeta();
+  const res=parseNote(raw, m.type, {date:m.date, bu:m.bu});
+  const n=newNoteFromParse(res);
+  state.notes.unshift(n);
+  harvestEntities(n); indexNote(n);
+  ui.draft=''; ui.draftMeta={};
+  const t=$('#capText'); if(t) t.value='';
+  persist(true);
+  toast('Structured — '+(n.gaps.length? n.gaps.length+' gap'+(n.gaps.length===1?'':'s')+' flagged' : 'no gaps flagged'));
+  go('note',{noteId:n.id});
+}
+
+/* ---------- 6.2 Notes list ---------- */
+function renderNotes(){
+  const el=$('#v-notes');
+  const f=ui.filters||{};
+  const list = searchNotes('', f).map(r=>r.note);
+  el.innerHTML = `
+    <h1>Notes</h1>
+    <p class="sub">${state.notes.length} note${state.notes.length===1?'':'s'} · newest first</p>
+    <div class="toolbar">
+      ${TYPE_KEYS.map(k=>`<button class="chip ${f.type===k?'on':''}" data-ft="${k}">${TYPES[k].label}</button>`).join('')}
+      ${f.type?`<button class="chip x" data-ft="">Clear ×</button>`:''}
+      <div class="spacer" style="flex:1"></div>
+      <button class="btn sm ghost" id="nNew">New note</button>
+    </div>
+    ${list.length? `<div class="notelist">${list.map(noteRow).join('')}</div>` :
+      `<div class="card empty"><b>Nothing here yet</b>Capture a note, or load the demo data from Settings to see how search and entity pages work.</div>`}`;
+  $$('[data-ft]',el).forEach(b=>b.onclick=()=>{ ui.filters={...f,type:b.dataset.ft||undefined}; render(); });
+  $('#nNew',el).onclick=()=>go('capture');
+  $$('.noteitem',el).forEach(r=>r.onclick=()=>go('note',{noteId:r.dataset.id}));
+}
+function noteRow(n,snippet){
+  const T=TYPES[n.type]||TYPES.walkthrough;
+  const meta=[fmtDate(n.date)||'no date', n.bu, (n.apps||[])[0], (n.people||[]).slice(0,2).join(', ')].filter(Boolean);
+  const openFu=(n.followups||[]).filter(f=>!f.done).length;
+  return `<div class="noteitem" data-id="${n.id}">
+    <span class="tbadge ${T.badge}">${esc(T.label)}</span>
+    <div style="flex:1;min-width:0">
+      <div class="ttl">${esc(n.title||'Untitled')}</div>
+      <div class="meta">${meta.map(m=>`<span>${esc(m)}</span>`).join('')}${openFu?`<span style="color:var(--warn)">${openFu} open follow-up${openFu===1?'':'s'}</span>`:''}${(n.gaps||[]).length?`<span>${n.gaps.length} gap${n.gaps.length===1?'':'s'}</span>`:''}</div>
+      ${snippet?`<div class="snip">${snippet}</div>`:''}
+    </div></div>`;
+}
+
+/* ---------- 6.3 Search ---------- */
+function renderSearch(){
+  const el=$('#v-search');
+  if(el.dataset.built!=='1'){
+    el.innerHTML=`<h1>Search</h1><p class="sub">Every note, every field. Filters narrow; typing ranks.</p>
+      <div class="toolbar"><input class="search-input" id="sq" placeholder="Search all notes…" autocomplete="off"></div>
+      <div class="toolbar" id="sfilters"></div><div id="sres"></div>`;
+    el.dataset.built='1';
+    $('#sq').addEventListener('input',()=>{ ui.q=$('#sq').value; drawSearch(); });
+  }
+  $('#sq').value=ui.q||'';
+  drawSearch();
+  setTimeout(()=>{ if(ui.view==='search') $('#sq').focus(); },30);
+}
+function drawSearch(){
+  const f=ui.filters||{};
+  const chips=[];
+  TYPE_KEYS.forEach(k=>chips.push(`<button class="chip ${f.type===k?'on':''}" data-f="type" data-v="${k}">${TYPES[k].label}</button>`));
+  known('bu').slice(0,8).forEach(e=>chips.push(`<button class="chip ${f.bu===e.name?'on':''}" data-f="bu" data-v="${esc(e.name)}">${esc(e.name)}</button>`));
+  known('app').slice(0,10).forEach(e=>chips.push(`<button class="chip ${f.app===e.name?'on':''}" data-f="app" data-v="${esc(e.name)}">${esc(e.name)}</button>`));
+  known('person').slice(0,8).forEach(e=>chips.push(`<button class="chip ${f.person===e.name?'on':''}" data-f="person" data-v="${esc(e.name)}">${esc(e.name)}</button>`));
+  if(Object.keys(f).length) chips.push(`<button class="chip x" data-f="clear">Clear filters ×</button>`);
+  $('#sfilters').innerHTML=chips.join('');
+  $$('#sfilters .chip').forEach(b=>b.onclick=()=>{
+    if(b.dataset.f==='clear'){ ui.filters={}; }
+    else { const k=b.dataset.f; ui.filters={...f,[k]: f[k]===b.dataset.v? undefined : b.dataset.v}; }
+    drawSearch();
+  });
+  const res=searchNotes(ui.q||'', ui.filters||{});
+  $('#sres').innerHTML = res.length
+    ? `<div class="notelist">${res.slice(0,120).map(r=>noteRow(r.note,r.snippet)).join('')}</div>`
+    : `<div class="card empty"><b>No matches</b>Try a different word, or clear the filters.</div>`;
+  $$('#sres .noteitem').forEach(r=>r.onclick=()=>go('note',{noteId:r.dataset.id}));
+}
+
+/* ---------- 6.4 Follow-ups ---------- */
+function renderFollowups(){
+  const el=$('#v-followups'); const all=openFollowups();
+  const open=all.filter(x=>!x.f.done), done=all.filter(x=>x.f.done);
+  el.innerHTML=`<h1>Follow-ups</h1>
+    <p class="sub">${open.length} open across all notes${done.length?` · ${done.length} done`:''}. Copy anything that needs real tracking into AuditDesk.</p>
+    ${all.length? `<div class="card" style="padding:14px">${
+      open.map(fuRow).join('') + (done.length?`<div style="margin-top:14px;font-size:11.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)">Done</div>`:'') + done.map(fuRow).join('')
+    }</div>` : `<div class="card empty"><b>No follow-ups yet</b>They're extracted automatically from your notes.</div>`}
+    ${open.length?`<div style="margin-top:12px"><button class="btn ghost sm" id="fuCopy">Copy open follow-ups for AuditDesk</button></div>`:''}`;
+  $$('.fu input',el).forEach(cb=>cb.onchange=()=>{
+    const n=getNote(cb.dataset.n), f=(n.followups||[]).find(x=>x.id===cb.dataset.f);
+    if(f){ f.done=cb.checked; touch(n); render(); }
+  });
+  $$('.fu-src',el).forEach(s=>s.onclick=()=>go('note',{noteId:s.dataset.n}));
+  const c=$('#fuCopy',el);
+  if(c) c.onclick=()=>{
+    const txt=open.map(x=>`- ${x.f.text}  [${x.n.title}${x.n.date?' · '+fmtDate(x.n.date):''}]`).join('\n');
+    copy(txt,'Open follow-ups copied — paste into AuditDesk tasks');
+  };
+  function fuRow(x){
+    return `<div class="fu ${x.f.done?'done':''}">
+      <input type="checkbox" data-n="${x.n.id}" data-f="${x.f.id}" ${x.f.done?'checked':''}>
+      <div style="flex:1"><div class="fu-t">${esc(x.f.text)}</div>
+      <div class="fu-src" style="cursor:pointer" data-n="${x.n.id}">${esc(x.n.title)}${x.n.date?' · '+fmtDate(x.n.date):''}</div></div></div>`;
+  }
+}
+
+/* ---------- 6.5 Entities ---------- */
+function renderEntities(){
+  const el=$('#v-entities');
+  const f=ui.filters||{};
+  const groups=Object.keys(ENTITY_TYPES).filter(t=>state.entities.some(e=>e.type===t));
+  const list=state.entities
+    .filter(e=>!f.etype||e.type===f.etype)
+    .map(e=>({e,n:entityNotes(e).length}))
+    .sort((a,b)=> b.n-a.n || a.e.name.localeCompare(b.e.name));
+  el.innerHTML=`<h1>Entities</h1>
+    <p class="sub">Built from your notes. Mentioning something files it — there is nothing to file by hand.</p>
+    <div class="toolbar">
+      ${groups.map(t=>`<button class="chip ${f.etype===t?'on':''}" data-et="${t}">${ENTITY_TYPES[t].label==='Business unit'?esc(state.settings.buLabel):ENTITY_TYPES[t].label}</button>`).join('')}
+      ${f.etype?`<button class="chip x" data-et="">Clear ×</button>`:''}
+    </div>
+    ${list.length?`<div class="egrid">${list.map(({e,n})=>`
+      <div class="ecard" data-id="${e.id}">
+        <div class="en">${esc(e.name)}</div>
+        <div class="em"><span class="etype">${e.type==='bu'?esc(state.settings.buLabel):ENTITY_TYPES[e.type].label}</span> &nbsp;${n} note${n===1?'':'s'}</div>
+      </div>`).join('')}</div>`
+    :`<div class="card empty"><b>No entities yet</b>They appear as soon as you structure a note.</div>`}`;
+  $$('[data-et]',el).forEach(b=>b.onclick=()=>{ ui.filters={...f,etype:b.dataset.et||undefined}; render(); });
+  $$('.ecard',el).forEach(c=>c.onclick=()=>go('entity',{entityId:c.dataset.id}));
+}
+function renderEntity(){
+  const el=$('#v-entity');
+  const e=state.entities.find(x=>x.id===ui.entityId);
+  if(!e){ go('entities'); return; }
+  const ns=entityNotes(e), rel=relatedEntities(e);
+  const ctrls=[];
+  ns.forEach(n=>(n.controls||[]).forEach(c=>{ if(e.type!=='app' || c.system===e.name || (n.apps||[]).includes(e.name)) ctrls.push({c,n}); }));
+  el.innerHTML=`
+    <div class="toolbar"><button class="btn sm ghost" id="ebk">← Entities</button></div>
+    <h1>${esc(e.name)}</h1>
+    <p class="sub"><span class="etype">${e.type==='bu'?esc(state.settings.buLabel):ENTITY_TYPES[e.type].label}</span> · ${ns.length} note${ns.length===1?'':'s'}${(e.aliases||[]).length?` · also known as ${esc(e.aliases.join(', '))}`:''}</p>
+    <div class="split">
+      <div>
+        <div class="pane"><div class="pane-head">Timeline</div><div style="padding:12px 16px">
+          ${ns.length?`<div class="timeline">${ns.map(n=>`
+            <div class="tl-item" data-id="${n.id}"><div class="tl-d">${fmtDate(n.date)||'no date'} · ${TYPES[n.type].label}</div>
+            <div class="tl-t">${esc(n.title)}</div></div>`).join('')}</div>`:`<div class="sec-empty">No notes yet.</div>`}
+        </div></div>
+      </div>
+      <div>
+        <div class="pane" style="margin-bottom:14px"><div class="pane-head">About</div><div style="padding:12px 14px">
+          <div class="fld"><label>Description</label><input id="eDesc" value="${esc(e.desc||'')}" placeholder="What is this?"></div>
+          <div class="fld" style="margin-top:9px"><label>Also known as (comma separated)</label><input id="eAlias" value="${esc((e.aliases||[]).join(', '))}" placeholder="O2C, Order-to-Cash"></div>
+          <div style="margin-top:10px;display:flex;gap:6px"><button class="btn sm" id="eSave">Save</button><button class="btn sm ghost" id="eMerge">Merge into…</button></div>
+        </div></div>
+        ${ctrls.length?`<div class="pane" style="margin-bottom:14px"><div class="pane-head">Controls seen (${ctrls.length})</div><div style="padding:10px 14px">
+          ${ctrls.map(({c,n})=>`<div class="ctrl"><div class="ct">${esc(c.ref)} — ${esc(c.desc)}</div>
+            <div class="em" style="font-size:11.5px;color:var(--muted)">${[c.performer,c.frequency,c.nature].filter(Boolean).map(esc).join(' · ')||'no attributes captured'} · <span style="cursor:pointer;text-decoration:underline" class="cjump" data-id="${n.id}">${esc(n.title)}</span></div></div>`).join('')}
+        </div></div>`:''}
+        ${rel.length?`<div class="pane"><div class="pane-head">Related</div><div style="padding:12px 14px" class="row">
+          ${rel.map(r=>`<button class="chip" data-rel="${esc(r.name)}" data-rt="${r.type}">${esc(r.name)} <span style="color:var(--muted)">${r.n}</span></button>`).join('')}
+        </div></div>`:''}
+      </div>
+    </div>`;
+  $('#ebk',el).onclick=()=>go('entities');
+  $$('.tl-item',el).forEach(t=>t.onclick=()=>go('note',{noteId:t.dataset.id}));
+  $$('.cjump',el).forEach(t=>t.onclick=()=>go('note',{noteId:t.dataset.id}));
+  $$('[data-rel]',el).forEach(b=>b.onclick=()=>{
+    const t=findEntity(b.dataset.rel,b.dataset.rt); if(t) go('entity',{entityId:t.id});
+  });
+  $('#eSave',el).onclick=()=>{
+    e.desc=$('#eDesc').value.trim();
+    e.aliases=$('#eAlias').value.split(',').map(s=>s.trim()).filter(Boolean);
+    persist(true); toast('Saved'); render();
+  };
+  $('#eMerge',el).onclick=()=>mergeDialog(e);
+}
+function mergeDialog(e){
+  const cands=state.entities.filter(x=>x.type===e.type && x.id!==e.id);
+  if(!cands.length){ toast('Nothing to merge into'); return; }
+  openModal(`Merge “${esc(e.name)}” into…`,
+    `<p class="hint">The notes stay as they are — the name you merge into keeps every mention, and “${esc(e.name)}” becomes one of its aliases.</p>
+     <select id="mTarget" style="width:100%;padding:8px;border-radius:7px;border:1px solid var(--border);background:var(--panel2)">
+       ${cands.map(c=>`<option value="${c.id}">${esc(c.name)}</option>`).join('')}</select>`,
+    [{label:'Merge',primary:true,fn:()=>{
+        const t=state.entities.find(x=>x.id===$('#mTarget').value); if(!t) return;
+        t.aliases=Array.from(new Set([...(t.aliases||[]),e.name,...(e.aliases||[])]));
+        const key={app:'apps',person:'people',process:'processes'}[e.type];
+        state.notes.forEach(n=>{
+          if(key){ n[key]=(n[key]||[]).map(v=>v===e.name?t.name:v).filter((v,i,a)=>a.indexOf(v)===i); }
+          else if(e.type==='bu' && n.bu===e.name) n.bu=t.name;
+          else if(e.type==='engagement' && n.engagement===e.name) n.engagement=t.name;
+        });
+        state.entities=state.entities.filter(x=>x.id!==e.id);
+        rebuildIndex(); persist(true); closeModal(); toast('Merged'); go('entity',{entityId:t.id});
+     }},{label:'Cancel'}]);
+}
+/* ---------- 6.6 Note detail (split view, spec §3.5) ---------- */
+const NATURES=['','Manual','Manual (IT-dependent)','Automated'];
+function renderNote(){
+  const el=$('#v-note'), n=getNote(ui.noteId);
+  if(!n){ go('notes'); return; }
+  const T=TYPES[n.type], secs=sectionsFor(n.type);
+  const customDefs=(state.settings.custom||{})[n.type]||[];
+  const L=state.settings.buLabel;
+
+  el.innerHTML=`
+    <div id="printHead"><h2>${esc(n.title)}</h2><div class="pm">${[T.label,fmtDate(n.date),n.bu,(n.people||[]).join(', ')].filter(Boolean).map(esc).join(' · ')}</div></div>
+    <div class="toolbar">
+      <button class="btn sm ghost" id="bBack">← Notes</button>
+      <div style="flex:1"></div>
+      <button class="btn sm ghost" id="bRe">Re-structure</button>
+      <button class="btn sm ghost" id="bCopy">Copy note</button>
+      ${T.controls?`<button class="btn sm ghost" id="bRcm">Copy for RCM Builder</button>`:''}
+      <button class="btn sm ghost" id="bPrint">Print</button>
+      <button class="btn sm ghost" id="bDel">Delete</button>
+    </div>
+    <div class="split">
+      <div class="pane" id="rawPaneWrap">
+        <div class="pane-head">Raw note <span class="spacer"></span><span style="font-weight:500;text-transform:none;letter-spacing:0">kept verbatim</span></div>
+        <div id="rawPane"><textarea id="rawEdit">${esc(n.raw)}</textarea></div>
+      </div>
+      <div class="pane">
+        <div class="pane-head">Structured <span class="spacer"></span>
+          <select id="nType" style="border:1px solid var(--border);background:var(--panel);border-radius:5px;padding:2px 5px;font-size:11px;text-transform:none;letter-spacing:0;font-weight:600">
+            ${TYPE_KEYS.map(k=>`<option value="${k}" ${k===n.type?'selected':''}>${TYPES[k].label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="hdrgrid">
+          <div class="fld" style="grid-column:1/-1"><label>Title</label><input id="fTitle" value="${esc(n.title)}"></div>
+          <div class="fld"><label>Date</label><input type="date" id="fDate" value="${esc(n.date)}"></div>
+          <div class="fld"><label>${esc(L)}</label><input id="fBu" value="${esc(n.bu||'')}"></div>
+          <div class="fld"><label>Engagement</label><input id="fEng" value="${esc(n.engagement||'')}"></div>
+          <div class="fld"><label>Applications</label><input id="fApps" value="${esc((n.apps||[]).join(', '))}"></div>
+          <div class="fld"><label>People</label><input id="fPeople" value="${esc((n.people||[]).join(', '))}"></div>
+          <div class="fld"><label>Processes</label><input id="fProc" value="${esc((n.processes||[]).join(', '))}"></div>
+          ${customDefs.map((c,i)=>`<div class="fld"><label>${esc(c.label)}</label>${
+            c.kind==='select'? `<select data-cf="${esc(c.label)}"><option value=""></option>${(c.options||'').split(',').map(o=>o.trim()).filter(Boolean).map(o=>`<option ${((n.custom||{})[c.label]===o)?'selected':''}>${esc(o)}</option>`).join('')}</select>`
+            : `<input type="${c.kind==='date'?'date':'text'}" data-cf="${esc(c.label)}" value="${esc((n.custom||{})[c.label]||'')}">`}</div>`).join('')}
+        </div>
+        ${secs.map(s=>sectionHtml(n,s)).join('')}
+        ${T.controls? controlsHtml(n) : ''}
+        ${gapsHtml(n)}
+        ${fuHtml(n)}
+      </div>
+    </div>`;
+
+  /* header bindings */
+  $('#bBack',el).onclick=()=>go('notes');
+  $('#bPrint',el).onclick=()=>window.print();
+  $('#bDel',el).onclick=()=>{ if(confirm('Delete this note? The raw text goes too.')){ deleteNote(n.id); toast('Deleted'); go('notes'); } };
+  $('#bCopy',el).onclick=()=>copy(noteAsText(n),'Note copied — paste into Word');
+  const rcm=$('#bRcm',el); if(rcm) rcm.onclick=()=>copy(rcmText(n),'Controls copied in RCM Builder intake format');
+  $('#bRe',el).onclick=()=>{
+    if(!confirm('Re-run structuring on the raw text? Manual edits to the structured side will be replaced. The raw note is untouched.')) return;
+    const res=parseNote(n.raw,n.type,{date:n.date,bu:n.bu,engagement:n.engagement});
+    Object.assign(n,{sections:res.sections,controls:res.controls,gaps:res.gaps,followups:res.followups,
+      date:n.date||res.date, apps:res.apps, people:res.people, processes:res.processes});
+    if(n.titleAuto) n.title=autoTitle(res);
+    touch(n); render(); toast('Re-structured');
+  };
+  $('#nType',el).onchange=e2=>{
+    n.type=e2.target.value;
+    const keys=secKeys(n.type);
+    const spill=[]; Object.entries(n.sections).forEach(([k,v])=>{ if(!keys.includes(k)) spill.push(...v); });
+    const ns={}; keys.forEach(k=>ns[k]=n.sections[k]||[]);
+    const last=keys.includes('discussion')?'discussion':keys[keys.length-1];
+    ns[last]=(ns[last]||[]).concat(spill);
+    n.sections=ns; touch(n); render();
+  };
+  $('#rawEdit',el).addEventListener('input',e2=>{ n.raw=e2.target.value; touch(n); });
+
+  bindField('#fTitle', v=>{ n.title=v; n.titleAuto=false; });
+  bindField('#fDate',  v=>{ n.date=v; });
+  bindField('#fBu',    v=>{ n.bu=v.trim(); });
+  bindField('#fEng',   v=>{ n.engagement=v.trim(); });
+  bindField('#fApps',  v=>{ n.apps=splitList(v); });
+  bindField('#fPeople',v=>{ n.people=splitList(v); });
+  bindField('#fProc',  v=>{ n.processes=splitList(v); });
+  $$('[data-cf]',el).forEach(inp=>inp.addEventListener('change',()=>{
+    n.custom=n.custom||{}; n.custom[inp.dataset.cf]=inp.value; touch(n);
+  }));
+
+  bindSections(n,el);
+  bindControls(n,el);
+  bindGaps(n,el);
+  bindFu(n,el);
+
+  function bindField(sel,fn){
+    const i=$(sel,el); if(!i) return;
+    i.addEventListener('change',()=>{ fn(i.value); touch(n); if(sel==='#fApps'||sel==='#fPeople'||sel==='#fProc'||sel==='#fBu') render(); });
+  }
+}
+const splitList = v => v.split(',').map(s=>s.trim()).filter(Boolean);
+
+function sectionHtml(n,s){
+  const lines=n.sections[s.key]||[];
+  return `<div class="sec" data-sec="${s.key}">
+    <div class="sec-head"><h3>${esc(s.label)}</h3><span class="cnt">${lines.length||''}</span><span class="spacer"></span>
+      ${lines.length?`<button class="mini" data-polish="${s.key}">Polish&nbsp;via&nbsp;Copilot</button>`:''}
+      <button class="mini" data-addline="${s.key}">+ line</button></div>
+    <div class="sec-body" data-drop="${s.key}">
+      ${lines.length? lines.map(l=>lineHtml(l,s.key)).join('')
+        : `<div class="sec-empty">${s.req?'Empty — required for this note type.':'Empty.'}</div>`}
+    </div></div>`;
+}
+function lineHtml(l,sec){
+  const hedge=(l.flags||[]).includes('hedge');
+  return `<div class="line ${hedge?'hedge':''}" draggable="true" data-line="${l.id}" data-sec="${sec}">
+    <span class="grip">⠿</span>
+    <span class="txt" contenteditable="true" spellcheck="false">${esc(l.text)}</span>
+    ${hedge?`<span class="flag" title="Hedged — asserted, not observed">⚠ unverified</span>`:''}
+    <span class="acts"><button class="mini" data-move="${l.id}">Move</button><button class="mini" data-delline="${l.id}">×</button></span>
+  </div>`;
+}
+function controlsHtml(n){
+  const cs=n.controls||[];
+  return `<div class="sec"><div class="sec-head"><h3>Control points</h3><span class="cnt">${cs.length||''}</span><span class="spacer"></span>
+      <button class="mini" data-addctrl="1">+ control</button></div>
+    <div class="sec-body">${cs.length? cs.map(ctrlHtml).join('') : `<div class="sec-empty">No control points identified.</div>`}</div></div>`;
+}
+function ctrlHtml(c){
+  return `<div class="ctrl" data-ctrl="${c.id}">
+    <div class="ctop">
+      <div style="flex:1"><div class="ct" contenteditable="true" spellcheck="false" data-cd="${c.id}">${esc(c.desc)}</div></div>
+      <span class="conf ${c.conf==='asserted'?'asserted':'observed'}" data-conf="${c.id}" title="Click to toggle">${c.conf==='asserted'?'⚠ asserted':'observed'}</span>
+      <button class="mini" data-delctrl="${c.id}">×</button>
+    </div>
+    <div class="cgrid">
+      <div class="fld"><label>Ref</label><input data-cx="ref" data-id="${c.id}" value="${esc(c.ref)}"></div>
+      <div class="fld"><label>System</label><input data-cx="system" data-id="${c.id}" value="${esc(c.system)}"></div>
+      <div class="fld"><label>Performed by</label><input data-cx="performer" data-id="${c.id}" value="${esc(c.performer)}"></div>
+      <div class="fld"><label>Frequency</label><input data-cx="frequency" data-id="${c.id}" value="${esc(c.frequency)}"></div>
+      <div class="fld"><label>Nature</label><select data-cx="nature" data-id="${c.id}">${NATURES.map(v=>`<option ${v===c.nature?'selected':''}>${v}</option>`).join('')}</select></div>
+      <div class="fld"><label>Evidence</label><input data-cx="evidence" data-id="${c.id}" value="${esc(c.evidence)}"></div>
+    </div></div>`;
+}
+function gapsHtml(n){
+  const gs=n.gaps||[];
+  return `<div class="sec"><div class="sec-head"><h3>Gaps &amp; questions</h3><span class="cnt">${gs.length||''}</span><span class="spacer"></span>
+    <button class="mini" data-addgap="1">+ gap</button></div>
+    <div class="sec-body">${gs.length? gs.map(g=>`<div class="gap" data-gap="${g.id}"><span class="txt" contenteditable="true" spellcheck="false" data-gt="${g.id}">${esc(g.text)}</span><button class="mini g-x" data-delgap="${g.id}">×</button></div>`).join('')
+      : `<div class="sec-empty">Nothing flagged.</div>`}</div></div>`;
+}
+function fuHtml(n){
+  const fs=n.followups||[];
+  return `<div class="sec"><div class="sec-head"><h3>Follow-ups</h3><span class="cnt">${fs.filter(f=>!f.done).length||''}</span><span class="spacer"></span>
+    <button class="mini" data-addfu="1">+ follow-up</button></div>
+    <div class="sec-body">${fs.length? fs.map(f=>`<div class="fu ${f.done?'done':''}"><input type="checkbox" data-fu="${f.id}" ${f.done?'checked':''}>
+      <span class="fu-t txt" style="flex:1" contenteditable="true" spellcheck="false" data-ft="${f.id}">${esc(f.text)}</span>
+      <button class="mini" data-delfu="${f.id}">×</button></div>`).join('') : `<div class="sec-empty">None detected.</div>`}</div></div>`;
+}
+
+/* --- bindings for the structured pane --- */
+function bindSections(n,el){
+  const findLine=id=>{ for(const k of Object.keys(n.sections)){ const i=(n.sections[k]||[]).findIndex(l=>l.id===id); if(i>=0) return {k,i,l:n.sections[k][i]}; } return null; };
+  $$('.line .txt',el).forEach(t=>t.addEventListener('blur',()=>{
+    const id=t.closest('.line').dataset.line, f=findLine(id); if(!f) return;
+    const v=t.textContent.trim(); if(!v){ n.sections[f.k].splice(f.i,1); touch(n); render(); return; }
+    f.l.text=v; touch(n);
+  }));
+  $$('[data-delline]',el).forEach(b=>b.onclick=()=>{ const f=findLine(b.dataset.delline); if(f){ n.sections[f.k].splice(f.i,1); touch(n); render(); } });
+  $$('[data-addline]',el).forEach(b=>b.onclick=()=>{
+    const k=b.dataset.addline; (n.sections[k]=n.sections[k]||[]).push({id:uid(),text:'New line',flags:[]});
+    touch(n); render();
+    setTimeout(()=>{ const ls=$$(`[data-drop="${k}"] .line .txt`); const last=ls[ls.length-1]; if(last){ last.focus(); document.execCommand&&document.execCommand('selectAll',false,null);} },40);
+  });
+  $$('[data-move]',el).forEach(b=>b.onclick=()=>moveDialog(n,b.dataset.move));
+  $$('[data-polish]',el).forEach(b=>b.onclick=()=>polishDialog(n,b.dataset.polish));
+
+  /* drag to reclassify */
+  let dragId=null;
+  $$('.line',el).forEach(li=>{
+    li.addEventListener('dragstart',ev=>{ dragId=li.dataset.line; ev.dataTransfer.effectAllowed='move'; try{ev.dataTransfer.setData('text/plain',dragId);}catch(e){} });
+    li.addEventListener('dragend',()=>{ dragId=null; $$('.sec-body').forEach(b=>b.classList.remove('drop')); });
+  });
+  $$('.sec-body[data-drop]',el).forEach(body=>{
+    body.addEventListener('dragover',ev=>{ ev.preventDefault(); body.classList.add('drop'); });
+    body.addEventListener('dragleave',()=>body.classList.remove('drop'));
+    body.addEventListener('drop',ev=>{
+      ev.preventDefault(); body.classList.remove('drop');
+      const id=dragId||ev.dataTransfer.getData('text/plain'); if(!id) return;
+      const f=findLine(id); if(!f) return;
+      const target=body.dataset.drop; if(target===f.k) return;
+      n.sections[f.k].splice(f.i,1);
+      (n.sections[target]=n.sections[target]||[]).push(f.l);
+      touch(n); render();
+    });
+  });
+}
+function moveDialog(n,lineId){
+  const secs=sectionsFor(n.type);
+  openModal('Move line to…',
+    `<select id="mvTo" style="width:100%;padding:8px;border-radius:7px;border:1px solid var(--border);background:var(--panel2)">
+      ${secs.map(s=>`<option value="sec:${s.key}">${esc(s.label)}</option>`).join('')}
+      ${TYPES[n.type].controls?`<option value="control">Control points</option>`:''}
+      <option value="gap">Gaps &amp; questions</option><option value="followup">Follow-ups</option>
+    </select>`,
+    [{label:'Move',primary:true,fn:()=>{
+      let src=null;
+      for(const k of Object.keys(n.sections)){ const i=(n.sections[k]||[]).findIndex(l=>l.id===lineId); if(i>=0){ src={k,i,l:n.sections[k][i]}; break; } }
+      if(!src) return closeModal();
+      const to=$('#mvTo').value;
+      n.sections[src.k].splice(src.i,1);
+      if(to==='control'){ const c=buildControl(src.l.text,n.apps); c.ref=''; n.controls.push(c); n.controls.forEach((x,i2)=>{ if(!x.ref) x.ref='Control '+(i2+1); }); }
+      else if(to==='gap') n.gaps.push({id:uid(),text:src.l.text,auto:false});
+      else if(to==='followup') n.followups.push({id:uid(),text:src.l.text,done:false});
+      else { const k=to.slice(4); (n.sections[k]=n.sections[k]||[]).push(src.l); }
+      touch(n); closeModal(); render();
+    }},{label:'Cancel'}]);
+}
+function bindControls(n,el){
+  const get=id=>(n.controls||[]).find(c=>c.id===id);
+  $$('[data-cd]',el).forEach(d=>d.addEventListener('blur',()=>{ const c=get(d.dataset.cd); if(c){ c.desc=d.textContent.trim(); touch(n);} }));
+  $$('[data-cx]',el).forEach(i=>i.addEventListener('change',()=>{ const c=get(i.dataset.id); if(c){ c[i.dataset.cx]=i.value.trim(); touch(n); } }));
+  $$('[data-conf]',el).forEach(s=>s.onclick=()=>{ const c=get(s.dataset.conf); if(c){ c.conf = c.conf==='asserted'?'observed':'asserted'; touch(n); render(); } });
+  $$('[data-delctrl]',el).forEach(b=>b.onclick=()=>{ n.controls=(n.controls||[]).filter(c=>c.id!==b.dataset.delctrl); touch(n); render(); });
+  const a=$('[data-addctrl]',el); if(a) a.onclick=()=>{ n.controls.push({id:uid(),ref:'Control '+((n.controls||[]).length+1),desc:'New control',system:'',performer:'',frequency:'',nature:'',evidence:'',conf:'observed'}); touch(n); render(); };
+}
+function bindGaps(n,el){
+  $$('[data-gt]',el).forEach(t=>t.addEventListener('blur',()=>{ const g=(n.gaps||[]).find(x=>x.id===t.dataset.gt); if(g){ g.text=t.textContent.trim(); touch(n);} }));
+  $$('[data-delgap]',el).forEach(b=>b.onclick=()=>{ n.gaps=(n.gaps||[]).filter(g=>g.id!==b.dataset.delgap); touch(n); render(); });
+  const a=$('[data-addgap]',el); if(a) a.onclick=()=>{ n.gaps.push({id:uid(),text:'New gap',auto:false}); touch(n); render(); };
+}
+function bindFu(n,el){
+  $$('[data-fu]',el).forEach(cb=>cb.onchange=()=>{ const f=(n.followups||[]).find(x=>x.id===cb.dataset.fu); if(f){ f.done=cb.checked; touch(n); render(); } });
+  $$('[data-ft]',el).forEach(t=>t.addEventListener('blur',()=>{ const f=(n.followups||[]).find(x=>x.id===t.dataset.ft); if(f){ f.text=t.textContent.trim(); touch(n);} }));
+  $$('[data-delfu]',el).forEach(b=>b.onclick=()=>{ n.followups=(n.followups||[]).filter(f=>f.id!==b.dataset.delfu); touch(n); render(); });
+  const a=$('[data-addfu]',el); if(a) a.onclick=()=>{ n.followups.push({id:uid(),text:'New follow-up',done:false}); touch(n); render(); };
+}
+
+/* ---------- 6.7 Copilot per-section polish (spec §3.12) ---------- */
+const POLISH_PROMPTS={
+  narrative:'Rewrite the following rough audit walkthrough fragments as a clear process narrative in third-person audit voice. Use only the facts given — invent nothing, add no controls, add no conclusions. Keep it concise and factual. If something is unclear, leave it as written rather than guessing.',
+  description:'Rewrite the following fragments as a short factual description of the application and what it does, in third-person audit voice. Facts only — invent nothing.',
+  purpose:'Rewrite the following as a single clear sentence stating the purpose of this walkthrough, in third-person audit voice. Facts only.',
+  procedure:'Rewrite the following fragments as a clear, re-performable description of the audit procedure performed, in third-person audit voice. Do not add steps that are not stated.',
+  results:'Rewrite the following fragments as a clear statement of testing results, in third-person audit voice. Do not draw conclusions beyond what is stated.',
+  conclusion:'Rewrite the following as a clear audit conclusion in third-person audit voice, supported only by what is stated. Do not strengthen or weaken the conclusion.',
+  summary:'Rewrite the following fragments as a clear, concise summary in neutral professional voice. Facts only — invent nothing.',
+  discussion:'Rewrite the following rough notes as clear, readable bullet points in third-person audit voice. Keep every fact, merge duplicates, invent nothing.'
+};
+function polishDialog(n,secKey){
+  const sec=sectionsFor(n.type).find(s=>s.key===secKey)||{label:secKey};
+  const lines=(n.sections[secKey]||[]).map(l=>'- '+l.text).join('\n');
+  const prompt=(POLISH_PROMPTS[secKey]||POLISH_PROMPTS.discussion)+'\n\n'+lines;
+  openModal('Polish “'+esc(sec.label)+'” via Copilot',
+    `<p class="hint">Copy the prompt into M365 Copilot, then paste what it returns below. It replaces this section only — the raw note is untouched, and you can always re-structure.</p>
+     <textarea id="polOut" readonly style="min-height:150px">${esc(prompt)}</textarea>
+     <div style="margin:10px 0 6px"><button class="btn sm" id="polCopy">Copy prompt</button></div>
+     <p class="hint" style="margin:12px 0 6px">Paste Copilot's reply here:</p>
+     <textarea id="polIn" placeholder="Paste the polished text…"></textarea>`,
+    [{label:'Replace section',primary:true,fn:()=>{
+        const v=$('#polIn').value.trim(); if(!v){ toast('Nothing pasted'); return; }
+        n.sections[secKey]=v.split(/\r?\n/).map(s=>s.replace(CUE.bullet,'').trim()).filter(Boolean)
+          .map(s=>({id:uid(),text:s,flags:[]}));
+        touch(n); closeModal(); render(); toast('Section replaced');
+     }},{label:'Cancel'}]);
+  $('#polCopy').onclick=()=>copy(prompt,'Prompt copied — paste into Copilot');
+}
+
+/* ---------- 6.8 Exports ---------- */
+function noteAsText(n){
+  const T=TYPES[n.type], L=state.settings.buLabel;
+  const out=[n.title,''];
+  const head=[['Type',T.label],['Date',fmtDate(n.date)],[L,n.bu],['Engagement',n.engagement],
+    ['Applications',(n.apps||[]).join(', ')],['People',(n.people||[]).join(', ')],['Processes',(n.processes||[]).join(', ')]];
+  Object.entries(n.custom||{}).forEach(([k,v])=>{ if(v) head.push([k,v]); });
+  head.filter(([,v])=>v).forEach(([k,v])=>out.push(k+': '+v));
+  sectionsFor(n.type).forEach(s=>{
+    const ls=n.sections[s.key]||[]; if(!ls.length) return;
+    out.push('', s.label.toUpperCase());
+    ls.forEach(l=>out.push('  • '+l.text+((l.flags||[]).includes('hedge')?'  [unverified]':'')));
+  });
+  if((n.controls||[]).length){
+    out.push('', 'CONTROL POINTS');
+    n.controls.forEach(c=>{
+      out.push('  '+(c.ref||'')+': '+c.desc+(c.conf==='asserted'?'  [asserted, not verified]':''));
+      const at=[['System',c.system],['Performed by',c.performer],['Frequency',c.frequency],['Nature',c.nature],['Evidence',c.evidence]].filter(([,v])=>v);
+      if(at.length) out.push('     '+at.map(([k,v])=>k+': '+v).join(' | '));
+    });
+  }
+  if((n.gaps||[]).length){ out.push('', 'GAPS & QUESTIONS'); n.gaps.forEach(g=>out.push('  • '+g.text)); }
+  if((n.followups||[]).length){ out.push('', 'FOLLOW-UPS'); n.followups.forEach(f=>out.push('  '+(f.done?'[x]':'[ ]')+' '+f.text)); }
+  return out.join('\n');
+}
+function rcmText(n){
+  const out=['Controls identified from walkthrough: '+n.title,
+             'Application: '+((n.apps||[]).join(', ')||'[NEEDED]'),
+             'Process: '+((n.processes||[]).join(', ')||'[NEEDED]'),
+             state.settings.buLabel+': '+(n.bu||'[NEEDED]'),''];
+  (n.controls||[]).forEach(c=>{
+    out.push((c.ref||'Control')+':');
+    out.push('  Description: '+(c.desc||'[NEEDED]'));
+    out.push('  System: '+(c.system||'[NEEDED]'));
+    out.push('  Performed by: '+(c.performer||'[NEEDED]'));
+    out.push('  Frequency: '+(c.frequency||'[NEEDED]'));
+    out.push('  Nature: '+(c.nature||'[NEEDED]'));
+    out.push('  Evidence: '+(c.evidence||'[NEEDED]'));
+    out.push('  Source: '+(c.conf==='asserted'?'asserted by client, NOT verified in walkthrough':'observed during walkthrough'));
+    out.push('');
+  });
+  if(!(n.controls||[]).length) out.push('[No controls captured in this note]');
+  return out.join('\n');
+}
+function copy(text,msg){
+  const ta=document.createElement('textarea');
+  ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+  document.body.appendChild(ta); ta.select();
+  let ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+  if(ok) toast(msg||'Copied');
+  else if(navigator.clipboard) navigator.clipboard.writeText(text).then(()=>toast(msg||'Copied'),()=>toast('Copy failed — select the text manually'));
+  else toast('Copy failed');
+}
+/* ============================================================
+   7. Modals, settings, backup, palette, demo, boot
+   ============================================================ */
+function openModal(title,body,btns){
+  $('#modalInner').innerHTML=`<h2>${title}</h2><div class="mbody">${body}</div>
+    <div class="mfoot">${(btns||[]).map((b,i)=>`<button class="btn ${b.primary?'':'ghost'}" data-mb="${i}">${esc(b.label)}</button>`).join('')}</div>`;
+  $('#modal').classList.add('on');
+  $$('[data-mb]').forEach(b=>b.onclick=()=>{
+    const def=(btns||[])[+b.dataset.mb];
+    if(def && def.fn) def.fn(); else closeModal();
+  });
+}
+function closeModal(){ $('#modal').classList.remove('on'); }
+$('#modal').addEventListener('mousedown',e=>{ if(e.target.id==='modal') closeModal(); });
+
+/* ---------- settings ---------- */
+let setTab='general';
+function openSettings(){
+  const s=state.settings;
+  const tabs=[['general','General'],['sections','Sections'],['custom','Custom fields'],['abbrev','Abbreviations'],['data','Data']];
+  const body=`<div class="tabs">${tabs.map(([k,l])=>`<button data-st="${k}" class="${setTab===k?'on':''}">${l}</button>`).join('')}</div><div id="setBody"></div>`;
+  openModal('Settings', body, [{label:'Done',primary:true,fn:closeModal}]);
+  drawSet();
+  $$('[data-st]').forEach(b=>b.onclick=()=>{ setTab=b.dataset.st; $$('[data-st]').forEach(x=>x.classList.toggle('on',x.dataset.st===setTab)); drawSet(); });
+
+  function drawSet(){
+    const el=$('#setBody');
+    if(setTab==='general'){
+      el.innerHTML=`<div class="setsec"><h3>Labels</h3>
+        <p class="hint">You audit internally, so the top-level grouping is a business unit rather than a client. Rename it if your firm words it differently.</p>
+        <div class="setrow"><span style="width:150px">Grouping label</span><input id="stBu" value="${esc(s.buLabel)}"></div></div>`;
+      $('#stBu').addEventListener('change',()=>{ s.buLabel=$('#stBu').value.trim()||'Business unit'; persist(true); render(); toast('Saved'); });
+    }
+    if(setTab==='sections'){
+      el.innerHTML=`<p class="hint">Add, rename or reorder sections. Note types and the parser's routing cues are fixed — the engine depends on them.</p>`+
+        TYPE_KEYS.map(tk=>{
+          const secs=sectionsFor(tk);
+          return `<div class="setsec"><h3>${TYPES[tk].label}</h3>
+            ${secs.map((x,i)=>`<div class="setrow">
+              <input data-sx="${tk}" data-i="${i}" value="${esc(x.label)}">
+              <label style="font-size:11.5px;color:var(--muted);display:flex;gap:4px;align-items:center"><input type="checkbox" data-sreq="${tk}" data-i="${i}" ${x.req?'checked':''}>required</label>
+              <button class="mini" data-sup="${tk}" data-i="${i}">↑</button>
+              <button class="mini" data-sdel="${tk}" data-i="${i}">×</button></div>`).join('')}
+            <div class="setrow"><input placeholder="Add a section…" data-sadd="${tk}"><button class="mini" data-saddb="${tk}">Add</button></div></div>`;
+        }).join('');
+      $$('[data-sx]').forEach(i=>i.addEventListener('change',()=>{ const a=ovr(i.dataset.sx); a[+i.dataset.i].label=i.value.trim()||a[+i.dataset.i].label; save(); }));
+      $$('[data-sreq]').forEach(i=>i.addEventListener('change',()=>{ const a=ovr(i.dataset.sreq); a[+i.dataset.i].req=i.checked; save(); }));
+      $$('[data-sup]').forEach(b=>b.onclick=()=>{ const a=ovr(b.dataset.sup),i=+b.dataset.i; if(i>0){ [a[i-1],a[i]]=[a[i],a[i-1]]; save(); drawSet(); } });
+      $$('[data-sdel]').forEach(b=>b.onclick=()=>{ const a=ovr(b.dataset.sdel); if(a.length<2) return toast('Keep at least one section'); a.splice(+b.dataset.i,1); save(); drawSet(); });
+      $$('[data-saddb]').forEach(b=>b.onclick=()=>{
+        const tk=b.dataset.saddb, inp=$(`[data-sadd="${tk}"]`), v=inp.value.trim(); if(!v) return;
+        const key=v.toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')||('s'+uid().slice(0,4));
+        ovr(tk).push({key,label:v,req:false}); save(); drawSet();
+      });
+      function ovr(tk){ if(!s.types[tk]) s.types[tk]=TYPES[tk].sections.map(x=>({...x})); return s.types[tk]; }
+      function save(){ persist(true); if(ui.view==='note') render(); }
+    }
+    if(setTab==='custom'){
+      el.innerHTML=`<p class="hint">Extra header fields per note type. Values are stored on the note and travel with your backup.</p>`+
+        TYPE_KEYS.map(tk=>{
+          const defs=(s.custom[tk]||[]);
+          return `<div class="setsec"><h3>${TYPES[tk].label}</h3>
+            ${defs.map((d,i)=>`<div class="setrow"><input data-cl="${tk}" data-i="${i}" value="${esc(d.label)}">
+              <select data-ck="${tk}" data-i="${i}">${['text','date','select'].map(k=>`<option ${k===d.kind?'selected':''}>${k}</option>`).join('')}</select>
+              <input data-co="${tk}" data-i="${i}" value="${esc(d.options||'')}" placeholder="options, comma separated" style="max-width:170px">
+              <button class="mini" data-cdel="${tk}" data-i="${i}">×</button></div>`).join('')}
+            <div class="setrow"><input placeholder="Add a field…" data-cadd="${tk}"><button class="mini" data-caddb="${tk}">Add</button></div></div>`;
+        }).join('');
+      $$('[data-cl]').forEach(i=>i.addEventListener('change',()=>{ s.custom[i.dataset.cl][+i.dataset.i].label=i.value.trim(); persist(true); }));
+      $$('[data-ck]').forEach(i=>i.addEventListener('change',()=>{ s.custom[i.dataset.ck][+i.dataset.i].kind=i.value; persist(true); }));
+      $$('[data-co]').forEach(i=>i.addEventListener('change',()=>{ s.custom[i.dataset.co][+i.dataset.i].options=i.value; persist(true); }));
+      $$('[data-cdel]').forEach(b=>b.onclick=()=>{ s.custom[b.dataset.cdel].splice(+b.dataset.i,1); persist(true); drawSet(); });
+      $$('[data-caddb]').forEach(b=>b.onclick=()=>{
+        const tk=b.dataset.caddb, v=$(`[data-cadd="${tk}"]`).value.trim(); if(!v) return;
+        (s.custom[tk]=s.custom[tk]||[]).push({label:v,kind:'text',options:''}); persist(true); drawSet();
+      });
+    }
+    if(setTab==='abbrev'){
+      el.innerHTML=`<p class="hint">Expanded during the tidying pass. Case-insensitive, whole words only.</p>
+        ${(s.abbrev||[]).map((p,i)=>`<div class="setrow"><input data-ab="0" data-i="${i}" value="${esc(p[0])}" style="max-width:140px">
+          <span style="color:var(--muted)">→</span><input data-ab="1" data-i="${i}" value="${esc(p[1])}">
+          <button class="mini" data-abdel="${i}">×</button></div>`).join('')}
+        <div class="setrow"><input id="abF" placeholder="chg mgmt" style="max-width:140px"><span style="color:var(--muted)">→</span><input id="abT" placeholder="change management"><button class="mini" id="abAdd">Add</button></div>`;
+      $$('[data-ab]').forEach(i=>i.addEventListener('change',()=>{ s.abbrev[+i.dataset.i][+i.dataset.ab]=i.value; persist(true); }));
+      $$('[data-abdel]').forEach(b=>b.onclick=()=>{ s.abbrev.splice(+b.dataset.abdel,1); persist(true); drawSet(); });
+      $('#abAdd').onclick=()=>{ const f=$('#abF').value.trim(), t=$('#abT').value.trim(); if(!f||!t) return; s.abbrev.push([f,t]); persist(true); drawSet(); };
+    }
+    if(setTab==='data'){
+      const has=state.notes.some(n=>n.demo);
+      el.innerHTML=`<div class="setsec"><h3>Backup</h3>
+          <p class="hint">Working data lives in this browser. Save a JSON backup to OneDrive so it survives a machine refresh and travels between machines.</p>
+          <div class="row"><button class="btn sm" id="dSave">Save backup</button><button class="btn sm ghost" id="dLoad">Load backup</button></div></div>
+        <div class="setsec"><h3>Demo data</h3>
+          <p class="hint">Loads a handful of clearly-marked demo notes so you can see search and entity pages working. Never mixed with your real notes — removing them takes them all out.</p>
+          <div class="row">${has?`<button class="btn sm ghost" id="dDemoOff">Remove demo notes</button>`:`<button class="btn sm ghost" id="dDemo">Load demo data</button>`}</div></div>
+        <div class="setsec"><h3>Everything</h3>
+          <p class="hint">Wipes all notes, entities and settings in this browser. Your saved backup files are not touched.</p>
+          <button class="btn sm ghost" id="dWipe" style="color:var(--crit);border-color:var(--crit)">Erase all data</button></div>
+        <p class="hint" style="margin-top:16px">AuditBrain runs entirely offline — it makes no network calls of any kind.</p>`;
+      $('#dSave').onclick=saveBackup; $('#dLoad').onclick=()=>$('#fileIn').click();
+      const d1=$('#dDemo'); if(d1) d1.onclick=()=>{ loadDemo(); drawSet(); };
+      const d2=$('#dDemoOff'); if(d2) d2.onclick=()=>{ state.notes=state.notes.filter(n=>!n.demo); pruneEntities(); rebuildIndex(); persist(true); render(); drawSet(); toast('Demo notes removed'); };
+      $('#dWipe').onclick=()=>{
+        if(!confirm('Erase every note, entity and setting in this browser? This cannot be undone.')) return;
+        state={v:1,notes:[],entities:[],settings:JSON.parse(JSON.stringify(DEFAULT_SETTINGS))};
+        ui.draft=''; ui.draftMeta={}; rebuildIndex(); persist(true); closeModal(); go('capture'); toast('Erased');
+      };
+    }
+  }
+}
+function pruneEntities(){
+  state.entities = state.entities.filter(e=> entityNotes(e).length>0 || e.desc || (e.aliases||[]).length);
+}
+
+/* ---------- backup ---------- */
+function saveBackup(){
+  const blob=new Blob([JSON.stringify({...state, savedAt:new Date().toISOString(), app:'AuditBrain'},null,1)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='auditbrain-'+today()+'.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },500);
+  toast('Backup saved — keep it on OneDrive');
+}
+$('#fileIn').addEventListener('change',ev=>{
+  const f=ev.target.files&&ev.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{
+    let obj; try{ obj=JSON.parse(r.result); }catch(e){ return toast('That file is not valid JSON'); }
+    if(!obj || !Array.isArray(obj.notes)) return toast('That does not look like an AuditBrain backup');
+    if(state.notes.length && !confirm(`Replace the ${state.notes.length} note(s) in this browser with the ${obj.notes.length} from the backup?`)) return;
+    state={v:1, notes:obj.notes||[], entities:obj.entities||[], settings:{...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)),...(obj.settings||{})}};
+    state.settings.types=state.settings.types||{}; state.settings.custom=state.settings.custom||{};
+    rebuildIndex(); persist(true); applyTheme(); go('notes'); toast('Backup loaded');
+  };
+  r.readAsText(f); ev.target.value='';
+});
+
+/* ---------- command palette ---------- */
+function openPal(){
+  $('#pal').classList.add('on'); $('#palIn').value=''; ui.palSel=0; drawPal();
+  setTimeout(()=>$('#palIn').focus(),20);
+}
+function closePal(){ $('#pal').classList.remove('on'); }
+function palItems(q){
+  const items=[
+    ...NAV.map(n=>({label:'Go to '+n.label, kb:n.key, fn:()=>go(n.k)})),
+    {label:'New note', kb:'N', fn:()=>go('capture')},
+    {label:'Save backup', kb:'Ctrl+S', fn:saveBackup},
+    {label:'Load backup', fn:()=>$('#fileIn').click()},
+    {label:'Settings', fn:openSettings},
+    {label:'Print this note', fn:()=>{ if(ui.view==='note') window.print(); else toast('Open a note first'); }}
+  ];
+  const t=q.toLowerCase().trim();
+  const notes=state.notes.filter(n=>!t||n.title.toLowerCase().includes(t)).slice(0,7)
+    .map(n=>({label:n.title, kb:TYPES[n.type].label, fn:()=>go('note',{noteId:n.id})}));
+  return [...items.filter(i=>!t||i.label.toLowerCase().includes(t)), ...notes];
+}
+function drawPal(){
+  const list=palItems($('#palIn').value);
+  ui.palSel=Math.max(0,Math.min(ui.palSel,list.length-1));
+  $('#palList').innerHTML=list.map((i,ix)=>`<div class="palrow ${ix===ui.palSel?'sel':''}" data-i="${ix}">${esc(i.label)}<span class="pk">${esc(i.kb||'')}</span></div>`).join('')
+    || `<div class="palrow">No matches</div>`;
+  $$('#palList .palrow').forEach(r=>r.onclick=()=>{ const it=list[+r.dataset.i]; if(it){ closePal(); it.fn(); } });
+}
+$('#palIn').addEventListener('input',()=>{ ui.palSel=0; drawPal(); });
+$('#palIn').addEventListener('keydown',e=>{
+  const list=palItems($('#palIn').value);
+  if(e.key==='ArrowDown'){ e.preventDefault(); ui.palSel=Math.min(ui.palSel+1,list.length-1); drawPal(); }
+  if(e.key==='ArrowUp'){ e.preventDefault(); ui.palSel=Math.max(ui.palSel-1,0); drawPal(); }
+  if(e.key==='Enter'){ e.preventDefault(); const it=list[ui.palSel]; if(it){ closePal(); it.fn(); } }
+});
+$('#pal').addEventListener('mousedown',e=>{ if(e.target.id==='pal') closePal(); });
+
+/* ---------- keyboard ---------- */
+document.addEventListener('keydown',e=>{
+  const typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName) || e.target.isContentEditable;
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); openPal(); return; }
+  if((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='s'){ e.preventDefault(); saveBackup(); return; }
+  if(e.key==='Escape'){
+    if($('#pal').classList.contains('on')) return closePal();
+    if($('#modal').classList.contains('on')) return closeModal();
+    if(typing) e.target.blur();
+    return;
+  }
+  if(typing || e.ctrlKey || e.metaKey || e.altKey) return;
+  if(e.key==='n'||e.key==='N'){ e.preventDefault(); go('capture'); return; }
+  if(e.key==='/'){ e.preventDefault(); go('search'); return; }
+  const nav=NAV.find(x=>x.key===e.key);
+  if(nav){ e.preventDefault(); go(nav.k); }
+});
+
+/* ---------- theme ---------- */
+function applyTheme(){
+  const t=state.settings.theme||'light';
+  document.documentElement.setAttribute('data-theme',t);
+  $('#themeSel').value=t;
+}
+$('#themeSel').addEventListener('change',()=>{ state.settings.theme=$('#themeSel').value; applyTheme(); persist(true); });
+$('#btnSettings').onclick=openSettings;
+$('#btnSave').onclick=saveBackup;
+$('#btnLoad').onclick=()=>$('#fileIn').click();
+
+/* ---------- demo data ---------- */
+const DEMO=[
+ {type:'walkthrough', bu:'Finance', engagement:'FY26 IT Audit', raw:
+`audit performed a walkthrough with john on may 31, 2026 to discuss app - BigApp. Per discussion audit noted the following:
+
+* App is responsible for taking in financial information and creating custom reports.
+* app follows enterprise processes for its IT controls
+* the app is provisioned by IT team
+* only IT team can grant access to app
+* app is supposed to do access reviews per enterprise app
+* the apps core functionality is dependent on custom code created within our company, it asks the user to input information into various field, it then takes that data and looks for patterns using fuzzy matching based off an internal logic board, then it recommends what type of report to create. The report then gets created and the user can go and make modifications to the look etc through a GUI.
+
+Audit noted the following controls per the walkthough:
+control 1: data integrity is key, interfaces from source system.`},
+
+ {type:'meeting', bu:'Finance', engagement:'FY26 IT Audit', raw:
+`quick call 12 june 2026 w/ john + priya re BigApp scope
+they agreed we can use the may access extract, no need for a fresh one
+priya said the logic board changes go through the normal chg mgmt process but she wasnt sure who approves them
+need to ask about the fuzzy matching thresholds - who sets them?
+john will send over the access review evidence by friday
+also mentioned BigApp is moving to a new host next quarter - might affect scope
+we should confirm whether the interface from SourceLedger is in scope or tested elsewhere`},
+
+ {type:'testing', bu:'Finance', engagement:'FY26 IT Audit', raw:
+`testing note 20 june 2026 - BigApp user access provisioning
+objective: to verify that access to BigApp is granted only following documented approval
+population of 148 new user accounts created between 1 jan and 31 may 2026, extracted from BigApp admin console by john on 2 june 2026
+sample of 25 selected haphazard
+for each we inspected the ticket in servicenow and agreed the approver to the authorisation matrix
+results: 23 of 25 had documented approval. 2 exceptions were noted where access was granted before the approval date
+exceptions relate to accounts created during the march month end
+concluded the control is not operating effectively for the period tested
+need to obtain managements response on the 2 exceptions`},
+
+ {type:'research', bu:'', engagement:'', raw:
+`note on testing automated controls with custom logic
+where an app uses custom code / internal logic to make decisions, inquiry alone is never sufficient
+source: ISACA ITAF - performance guidelines on automated controls
+approach that worked last year: obtain the logic configuration export, re-perform a sample of decisions manually, and test change management over the logic itself
+the change management piece is the one people forget - if the logic can be changed without approval then re-performance at a point in time proves very little
+how to apply: always pair a re-performance test with a change control test over the same logic`}
+];
+function loadDemo(){
+  DEMO.forEach(d=>{
+    const res=parseNote(d.raw,d.type,{bu:d.bu,engagement:d.engagement});
+    const n=newNoteFromParse(res,{demo:true});
+    state.notes.push(n); harvestEntities(n); indexNote(n);
+  });
+  state.notes.sort(byDateDesc);
+  persist(true); render(); toast('Demo data loaded — Settings › Data to remove it');
+}
+
+/* ---------- boot ---------- */
+(async function boot(){
+  const saved=await DB.load();
+  if(saved && Array.isArray(saved.notes)){
+    state={v:1, notes:saved.notes, entities:saved.entities||[],
+           settings:{...JSON.parse(JSON.stringify(DEFAULT_SETTINGS)), ...(saved.settings||{})}};
+    state.settings.types=state.settings.types||{};
+    state.settings.custom=state.settings.custom||{};
+    if(saved.ui){ ui.draft=saved.ui.draft||''; ui.draftMeta=saved.ui.draftMeta||{}; }
+  }
+  /* keep the capture draft inside persisted state */
+  const _persist=persist;
+  window.persist=persist=function(now){ state.ui={draft:ui.draft,draftMeta:ui.draftMeta}; _persist(now); };
+  if(saved && saved.ui){ ui.draft=saved.ui.draft||''; ui.draftMeta=saved.ui.draftMeta||{}; }
+  applyTheme();
+  rebuildIndex();
+  renderNav();
+  go(state.notes.length? 'notes' : 'capture');
+})();
+
+</script>
+</body>
+</html>
